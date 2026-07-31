@@ -2,98 +2,164 @@
 <html lang="en">
 
 <head>
-    <meta charset='UTF-8'>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#10121e">
+    <meta name="description" content="Compare Fantasy Tennis equipment, stats, and acquisition sources.">
     <title>JFTSE Item Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=Barlow+Semi+Condensed:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
 
-<body>
+<body data-jftse-app="item-finder">
     <div id="top_div"></div>
 
-    <fieldset id="filter_group">
-        <legend>Filter</legend>
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a class="brand-lockup" href="https://www.jftse.com/" aria-label="JFTSE home">
+                <span class="brand-lockup__copy">
+                    <span class="brand-lockup__eyebrow">Fantasy Tennis Community Server</span>
+                    <span class="brand-lockup__name">JFTSE</span>
+                </span>
+            </a>
+            <nav aria-label="JFTSE navigation">
+                <a href="https://www.jftse.com/">Home</a>
+                <a href="https://www.jftse.com/register">Register</a>
+                <a href="https://www.jftse.com/download">Download</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="finder-heading" aria-labelledby="finder-title">
         <div>
-            <div id="characterFilters"></div>
-            <div id="miscFilter" class="rowlayout">
-                <label id="levelDisplay" for="levelrange">Max level:</label>
-                <input type="range" min="1" max="100" value="100" id="levelrange">
-                <label for="nameFilter">Item Name</label>
-                <input type="search" id="nameFilter" spellcheck="false">
-                <div class="columnlayout" id="enchantdiv">
+            <p class="finder-heading__eyebrow">Equipment database</p>
+            <h1 id="finder-title">JFTSE Item Finder</h1>
+            <p>Compare equipment stats and discover where every item can be found.</p>
+        </div>
+        <button class="filter-toggle" id="filterToggle" type="button" aria-controls="filter_group"
+            aria-expanded="false">
+            <span aria-hidden="true">☰</span>
+            Filters
+        </button>
+    </section>
+
+    <button class="filter-backdrop" id="filterBackdrop" type="button" aria-label="Close filters" hidden></button>
+
+    <main class="finder-layout">
+        <fieldset class="panel filter-panel" id="filter_group" data-mobile-filter-panel>
+            <legend>Find equipment</legend>
+            <div class="panel__mobile-header">
+                <span>Filters</span>
+                <button id="closeFilters" type="button" aria-label="Close filters">Close</button>
+            </div>
+
+            <div id="miscFilter" class="filter-stack">
+                <div class="control-group control-group--search">
+                    <label for="nameFilter">Item name</label>
+                    <input type="search" id="nameFilter" placeholder="Search items by name" spellcheck="false"
+                        autocomplete="off">
+                </div>
+
+                <div class="control-group">
+                    <label id="levelDisplay" for="levelrange">Max level requirement: 100</label>
+                    <input type="range" min="1" max="100" value="100" id="levelrange">
+                </div>
+
+                <div class="toggle-row" id="enchantdiv">
                     <input type="checkbox" id="enchantToggle">
-                    <label for="enchantToggle">Post-enchantment</label>
+                    <label for="enchantToggle">Show post-enchantment stats</label>
                 </div>
             </div>
-        </div>
-        <div>
-            <input id="partsSelector" type="radio" name="itemTypeSelector">
-            <label for="partsSelector">Equipment</label>
-            <div id="partsFilter"></div>
-            <input id="gachaSelector" type="radio" name="itemTypeSelector">
-            <label for="gachaSelector">Gacha</label>
-            <br>
-            <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled">
-            <label for="otherItemsSelector" class="disabled">Other items</label>
-        </div>
-        <div id="availabilityFilter"></div>
-        <div id="itemFilter"></div>
-    </fieldset>
 
-    <fieldset id="priority_group">
-        <legend id="priority_legend">Sort Priority</legend>
-        <ol reversed id="priority_list">
-            <li class="dropzone" draggable="true">Mov Speed</li>
-            <li class="dropzone" draggable="true">Charge</li>
-            <li class="dropzone" draggable="true">Lob</li>
-            <li class="dropzone" draggable="true">Smash</li>
-            <li class="dropzone" draggable="true">Str</li>
-            <li class="dropzone" draggable="true">Dex</li>
-            <li class="dropzone" draggable="true">Sta</li>
-            <li class="dropzone" draggable="true">Will</li>
-            <li class="dropzone" draggable="true">Serve</li>
-            <li class="dropzone" draggable="true">Quickslots</li>
-            <li class="dropzone" draggable="true">Buffslots</li>
-            <li class="dropzone" draggable="true">HP</li>
-            <!--
-            <li class="dropzone" draggable="true">AP cost</li>
-            <li class="dropzone" draggable="true">Gold cost</li>
-            -->
-        </ol>
-    </fieldset>
+            <div class="filter-section">
+                <h2>Character</h2>
+                <div id="characterFilters" class="choice-list"></div>
+            </div>
 
-    <fieldset id="results_group">
-        <legend>Results</legend>
-        <div id="loading_group" class="hide_after_load">
-            <label for="progressbar" id="loading">Loading, please wait...</label>
-            <progress id="progressbar" max="100" value="0"></progress>
-        </div>
-        <div id="results" class="show_after_load" hidden></div>
-    </fieldset>
+            <div class="filter-section">
+                <h2>Item type</h2>
+                <div class="choice-list choice-list--types">
+                    <input id="partsSelector" type="radio" name="itemTypeSelector">
+                    <label for="partsSelector">Equipment</label>
+                    <input id="gachaSelector" type="radio" name="itemTypeSelector">
+                    <label for="gachaSelector">Gacha</label>
+                    <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled" disabled
+                        aria-disabled="true">
+                    <label for="otherItemsSelector" class="disabled">Other items <span>(coming soon)</span></label>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h2>Equipment slots</h2>
+                <div id="partsFilter"></div>
+            </div>
+
+            <div class="filter-section">
+                <h2>Availability</h2>
+                <div id="availabilityFilter"></div>
+            </div>
+
+            <div class="filter-section exclusion-section">
+                <h2>Excluded items</h2>
+                <p class="section-hint">Remove an item from results to compare alternatives.</p>
+                <div id="itemFilter" aria-live="polite">
+                    <p class="empty-note">No excluded items</p>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="panel priority-panel" id="priority_group">
+            <legend id="priority_legend">Sort priority</legend>
+            <p class="panel-intro">Drag stats to rank the attributes that matter most.</p>
+            <ol reversed id="priority_list" aria-label="Item stat priority">
+                <li class="dropzone" draggable="true">Mov Speed</li>
+                <li class="dropzone" draggable="true">Charge</li>
+                <li class="dropzone" draggable="true">Lob</li>
+                <li class="dropzone" draggable="true">Smash</li>
+                <li class="dropzone" draggable="true">Str</li>
+                <li class="dropzone" draggable="true">Dex</li>
+                <li class="dropzone" draggable="true">Sta</li>
+                <li class="dropzone" draggable="true">Will</li>
+                <li class="dropzone" draggable="true">Serve</li>
+                <li class="dropzone" draggable="true">Quickslots</li>
+                <li class="dropzone" draggable="true">Buffslots</li>
+                <li class="dropzone" draggable="true">HP</li>
+            </ol>
+        </fieldset>
+
+        <section class="panel results-panel" id="results_group" aria-labelledby="results-title">
+            <div class="results-panel__header">
+                <div>
+                    <p class="panel-kicker">Live comparison</p>
+                    <h2 id="results-title">Results</h2>
+                </div>
+                <p id="resultsStatus" class="results-status" aria-live="polite">Loading item data…</p>
+            </div>
+
+            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite">
+                <div class="loading-state__copy">
+                    <label id="loading" for="progressbar">Loading item database…</label>
+                    <span>Fetching equipment, shops, gacha, and Guardian data.</span>
+                </div>
+                <progress id="progressbar" max="100" value="0" aria-label="Item data loading progress"></progress>
+            </div>
+
+            <div class="table-scroll" role="region" aria-label="Item comparison results" tabindex="0">
+                <div id="results" class="show_after_load" hidden></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>Built for the JFTSE Fantasy Tennis community.</p>
+        <p>Feedback? Join the <a href="https://discord.gg/MwamzbMTMy">JFTSE Discord</a>.</p>
+    </footer>
 
     <script src="script.js"></script>
-
-    <footer>
-        <hr>
-        <fieldset id="todo_group">
-            <legend>TODO List</legend>
-            <ul>
-                <li>Figure out how to tell if an item is full body (soda can)</li>
-                <li>Allow changing sources (older or experimental versions)</li>
-                <li>Add stat distribution function</li>
-                <li>Automatically reload page when source changes (either FT update or Item Finder update)</li>
-                <li>Add support for mobile drag/drop for priority list</li>
-                <li>Highlight hovered row and column in results table</li>
-                <li>Make exclusion list a scroll window and add explanation</li>
-                <li>Properly calculate total cost</li>
-            </ul>
-        </fieldset>
-        <p>Like it? Give gold to Kanone!<br>Hate it? Complain to Lilli on <a
-                href="https://discord.gg/MwamzbMTMy">Discord</a>!
-        </p>
-    </footer>
 </body>
 
 </html>

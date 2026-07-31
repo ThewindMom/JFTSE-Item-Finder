@@ -728,34 +728,59 @@ export async function downloadItems() {
 }
 
 function deletableItem(name: string, id: number) {
-    return createHTML(["div", createHTML(["button", { class: "item_removal", "data-item_index": `${id}` }, "X"]), name]);
+    return createHTML([
+        "div",
+        createHTML([
+            "button",
+            {
+                class: "item_removal",
+                "data-item_index": `${id}`,
+                "aria-label": `Exclude ${name} from results`,
+                type: "button",
+            },
+            "Exclude",
+        ]),
+        name,
+    ]);
 }
 
 export function createPopupLink(text: string, content: HTMLElement | string | (HTMLElement | string)[]) {
-    const link = createHTML(["a", { class: "popup_link" }, text]);
-    link.addEventListener("click", (e) => {
-        if (!(e instanceof MouseEvent)) {
-            return;
-        }
+    const button = createHTML([
+        "button",
+        {
+            class: "popup_link",
+            type: "button",
+            "aria-haspopup": "dialog",
+            "aria-expanded": "false",
+        },
+        text,
+    ]);
+    button.addEventListener("click", (event) => {
         const top_div = document.getElementById("top_div");
         if (!(top_div instanceof HTMLDivElement)) {
             return;
         }
-        e.stopPropagation();
+        event.stopPropagation();
         if (dialog) {
             dialog.close();
             dialog.remove();
         }
-        dialog = Array.isArray(content) ? createHTML(["dialog", ...content]) : createHTML(["dialog", content]);
-
+        const closeButton = createHTML(["button", { type: "button" }, "Close"]);
+        dialog = Array.isArray(content)
+            ? createHTML(["dialog", { "aria-label": `${text} details` }, ...content, closeButton])
+            : createHTML(["dialog", { "aria-label": `${text} details` }, content, closeButton]);
+        button.setAttribute("aria-expanded", "true");
+        closeButton.addEventListener("click", () => dialog?.close());
+        dialog.addEventListener("close", () => {
+            button.setAttribute("aria-expanded", "false");
+            dialog?.remove();
+            dialog = undefined;
+            button.focus();
+        }, { once: true });
         top_div.appendChild(dialog);
-        const width = 300;
-        dialog.style.position = "absolute";
-        dialog.style.top = `${e.pageY}px`;
-        dialog.style.left = `${e.pageX - width}px`;
-        dialog.show();
+        dialog.showModal();
     });
-    return link;
+    return button;
 }
 
 function createChancePopup(tries: number) {
@@ -962,10 +987,24 @@ function sourceItemElement(item: Item, itemSource: ItemSource, sourceFilter: (it
     }
 }
 
+function createItemArtFallback(item: Item) {
+    return createHTML([
+        "span",
+        {
+            class: "item-art-fallback",
+            role: "img",
+            "aria-label": `Official item art unavailable for ${item.name_en}`,
+        },
+        ["span", { class: "item-art-fallback__code", "aria-hidden": "true" }, "[N/A]"],
+        ["span", { "aria-hidden": "true" }, "Official art unavailable"],
+    ]);
+}
+
 function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => boolean, priorityStats: string[], character?: Character): HTMLTableRowElement {
     const row = createHTML(
         ["tr",
             ["td", { class: "Name_column" }, deletableItem(item.name_en, item.id)],
+            ["td", { class: "Art_column" }, createItemArtFallback(item)],
             ["td", { class: "Character_column" }, item.character ?? "All"],
             ["td", { class: "Part_column" }, item.part],
             ...priorityStats.map(stat => createHTML(["td", { class: "numeric" }, stat.split("+").map(s => item.statFromString(s)).join("+")])),
@@ -1024,16 +1063,25 @@ export function getResultsTable(
 
     const table = createHTML(
         ["table",
-            ["tr",
-                ["th", { class: "Name_column" }, "Name"],
-                ["th", { class: "Character_column" }, "Character"],
-                ["th", { class: "Part_column" }, "Part"],
-                ...priorityStats.map(stat => createHTML(["th", { class: "numeric" }, stat])),
-                ["th", { class: "Level_column numeric" }, "Level"],
-                ["th", { class: "Source_column" }, "Source"],
-            ]
+            ["caption", "Best matching equipment by slot and selected stat priority"],
+            ["thead",
+                ["tr",
+                    ["th", { class: "Name_column", scope: "col" }, "Item"],
+                    ["th", { class: "Art_column", scope: "col" }, "Art"],
+                    ["th", { class: "Character_column", scope: "col" }, "Character"],
+                    ["th", { class: "Part_column", scope: "col" }, "Part"],
+                    ...priorityStats.map(stat => createHTML(["th", { class: "numeric", scope: "col" }, stat])),
+                    ["th", { class: "Level_column numeric", scope: "col" }, "Level"],
+                    ["th", { class: "Source_column", scope: "col" }, "Source"],
+                ],
+            ],
+            ["tbody"],
         ]
     );
+    const tableBody = table.tBodies[0];
+    if (!tableBody) {
+        throw "Internal error";
+    }
 
     type MapOptions = { [key: string]: number[] };
 
@@ -1161,7 +1209,7 @@ export function getResultsTable(
         for (const item of result) {
             for (const char of item.character ? [item.character] : characters) {
                 statistics.characters.add(char)
-                table.appendChild(itemToTableRow(item, sourceFilter, priorityStats, char));
+                tableBody.appendChild(itemToTableRow(item, sourceFilter, priorityStats, char));
             }
             statistics.cost = combineCosts(costOf(item, character && isCharacter(character) ? character : undefined), statistics.cost);
         }
@@ -1176,9 +1224,11 @@ export function getResultsTable(
             total_sources.push(`${statistics.cost.ap.toFixed(0)} AP`);
         }
         //statistics['Guardian games'].forEach((count, map) => total_sources.push(`${count.toFixed(0)} x ${map}`));
-        table.appendChild(createHTML(
+        table.appendChild(createHTML([
+            "tfoot",
             ["tr",
                 ["td", { class: "total Name_column" }, "Total:"],
+                ["td", { class: "total Art_column" }],
                 ["td", { class: "total Character_column" }],
                 ["td", { class: "total Part_column" }],
                 ...priorityStats.map(stat => createHTML(["td", { class: "total numeric" },
@@ -1187,8 +1237,8 @@ export function getResultsTable(
                 ])),
                 ["td", { class: "total Level_column numeric" }, `${statistics.Level}`],
                 ["td", { class: "total Source_column" }, total_sources.join(", ")],
-            ]
-        ));
+            ],
+        ]));
         for (const column_element of table.getElementsByClassName(`Character_column`)) {
             if (!(column_element instanceof HTMLElement)) {
                 continue;
@@ -1221,9 +1271,7 @@ export function getMaxItemLevel() {
 }
 
 document.body.addEventListener('click', (event) => {
-    if (dialog && dialog !== event.target) {
+    if (dialog && dialog === event.target) {
         dialog.close();
-        dialog.remove();
-        dialog = undefined;
     }
 });

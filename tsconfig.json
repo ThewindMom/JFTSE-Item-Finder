@@ -63,5 +63,8 @@
   },
   "lib": [
     "esnext"
+  ],
+  "exclude": [
+    "**/*.test.ts"
   ]
 }

@@ -1,6 +1,7 @@
 import { makeCheckboxTree, TreeNode, getLeafStates, setLeafStates } from './checkboxTree';
 import { createPopupLink, downloadItems, getResultsTable, Item, ItemSource, getMaxItemLevel, items, Character, characters, isCharacter, ShopItemSource, GachaItemSource, getGachaTable } from './itemLookup';
 import { createHTML } from './html';
+import { selectByPriority } from './priority';
 import { Variable_storage } from './storage';
 
 const partsFilter = [
@@ -494,7 +495,20 @@ function updateResults() {
             if (!item) {
                 continue;
             }
-            itemFilterList.appendChild(createHTML(["div", createHTML(["button", { class: "item_removal_removal", "data-item_index": `${id}` }, "X"]), item.name_en]));
+            itemFilterList.appendChild(createHTML([
+                "div",
+                item.name_en,
+                createHTML([
+                    "button",
+                    {
+                        class: "item_removal_removal",
+                        "data-item_index": `${id}`,
+                        "aria-label": `Remove ${item.name_en} from exclusions`,
+                        type: "button",
+                    },
+                    "Remove",
+                ]),
+            ]));
         }
 
     }
@@ -526,20 +540,7 @@ function updateResults() {
                 return getResultsTable(
                     item => filters.every(filter => filter(item)),
                     itemSource => sourceFilters.every(filter => filter(itemSource)),
-                    (items, item) => {
-                        if (items.length === 0) {
-                            return [item];
-                        }
-                        for (const comparator of comparators) {
-                            switch (comparator(items[0], item)) {
-                                case -1:
-                                    return [item];
-                                case 1:
-                                    return items;
-                            }
-                        }
-                        return [...items, item];
-                    },
+                    (items, item) => selectByPriority(items, item, comparators),
                     priorityStats,
                     selectedCharacter
                 );
@@ -560,8 +561,24 @@ function updateResults() {
     if (!target) {
         return;
     }
+    const resultRows = table.tBodies[0]?.rows.length ?? Math.max(0, table.rows.length - 1);
     target.innerText = "";
-    target.appendChild(table);
+    if (resultRows === 0) {
+        target.appendChild(createHTML([
+            "p",
+            { class: "results-empty", role: "status" },
+            "No items match these filters.",
+        ]));
+    }
+    else {
+        target.appendChild(table);
+    }
+    const resultsStatus = document.getElementById("resultsStatus");
+    if (resultsStatus) {
+        resultsStatus.textContent = resultRows === 0
+            ? "No items match these filters."
+            : `${resultRows} matching ${resultRows === 1 ? "item" : "items"}`;
+    }
 }
 
 function setMaxLevelDisplayUpdate() {
@@ -612,6 +629,55 @@ function setDisplayUpdates() {
 
 setDisplayUpdates();
 
+function setMobileFilterControls() {
+    const filterToggle = document.getElementById("filterToggle");
+    const closeFilters = document.getElementById("closeFilters");
+    const filterPanel = document.getElementById("filter_group");
+    const filterBackdrop = document.getElementById("filterBackdrop");
+    if (!(filterToggle instanceof HTMLButtonElement)
+        || !(closeFilters instanceof HTMLButtonElement)
+        || !(filterPanel instanceof HTMLFieldSetElement)
+        || !(filterBackdrop instanceof HTMLButtonElement)) {
+        return;
+    }
+    const toggleButton = filterToggle;
+    const closeButton = closeFilters;
+    const panel = filterPanel;
+    const backdropButton = filterBackdrop;
+
+    function setOpen(open: boolean) {
+        panel.classList.toggle("is-open", open);
+        toggleButton.setAttribute("aria-expanded", `${open}`);
+        backdropButton.hidden = !open;
+        document.body.classList.toggle("filters-open", open);
+        if (open) {
+            const nameFilter = document.getElementById("nameFilter");
+            if (nameFilter instanceof HTMLInputElement) {
+                nameFilter.focus();
+            }
+        }
+        else {
+            toggleButton.focus();
+        }
+    }
+
+    toggleButton.addEventListener("click", () => setOpen(true));
+    closeButton.addEventListener("click", () => setOpen(false));
+    backdropButton.addEventListener("click", () => setOpen(false));
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && panel.classList.contains("is-open")) {
+            setOpen(false);
+        }
+    });
+    window.matchMedia("(min-width: 768px)").addEventListener("change", ({ matches }) => {
+        if (matches && panel.classList.contains("is-open")) {
+            setOpen(false);
+        }
+    });
+}
+
+setMobileFilterControls();
+
 function setItemTypeSelectorFunctionality() {
     const priority_group = document.getElementById("priority_group");
     if (!(priority_group instanceof HTMLFieldSetElement)) {
@@ -653,6 +719,8 @@ function setItemTypeSelectorFunctionality() {
 }
 
 window.addEventListener("load", async () => {
+    const resultsGroup = document.getElementById("results_group");
+    resultsGroup?.setAttribute("aria-busy", "true");
     setItemTypeSelectorFunctionality();
     restoreSelection();
     await downloadItems();
@@ -675,6 +743,7 @@ window.addEventListener("load", async () => {
     levelrange.max = `${maxLevel}`;
     levelrange.dispatchEvent(new Event("input"));
     updateResults();
+    resultsGroup?.setAttribute("aria-busy", "false");
     const sort_help = document.getElementById("priority_legend");
     if (sort_help instanceof HTMLLegendElement) {
         sort_help.appendChild(createPopupLink(" (?)", createHTML(["p",
