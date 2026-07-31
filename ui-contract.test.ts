@@ -56,6 +56,33 @@ test("renders item thumbnails with accessible fallback metadata", async () => {
     expect(css).toMatch(/\.item-art-fallback[\s\S]*inline-size:\s*40px/);
 });
 
+test("renders authentic extracted client artwork when mapped", async () => {
+    const [renderer, server, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./server.ts"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(renderer).toContain('"/assets/item-art-map.json"');
+    expect(renderer).toContain('class: "item-art-thumbnail"');
+    expect(renderer).toContain('Official item art for ${item.name_en}');
+    expect(server).toContain('"/assets/item-art-map.json"');
+    expect(server).toContain('"/assets/item-art/:file"');
+    expect(css).toMatch(/\.item-art-thumbnail[\s\S]*background-image/);
+
+    const mapFile = Bun.file(new URL("./assets/item-art-map.json", import.meta.url));
+    expect(await mapFile.exists()).toBe(true);
+    if (await mapFile.exists()) {
+        const map = await mapFile.json() as {
+            items: Record<string, [string, number]>;
+        };
+        expect(map.items["929"]).toEqual(["Item_Common01", 6]);
+    }
+    expect(
+        await Bun.file(new URL("./assets/item-art/Item_Common01.webp", import.meta.url)).exists(),
+    ).toBe(true);
+});
+
 test("presents a task-first finder workspace", async () => {
     const [html, css] = await Promise.all([
         projectFile("./index.html"),

@@ -190,17 +190,18 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 
 ## Item art policy
 
-The current data source has no authoritative item-image URL.
+The public API has no item-image URL, but the extracted Fantasy Tennis client is authoritative:
+`Item_Parts.set` maps every item index to an icon descriptor, `Info_Item_Icon.set` maps
+that descriptor to a sprite sheet, and `Res/GuiRes/Item*.res` contains the original pixels.
 
-- Use official JFTSE/Fantasy Tennis art only when mapping is reliable.
+- Ship the lossless extracted sprite sheets and the generated item-index map.
+- Render the exact 100x100 client cell inside a 40x40px result tile.
 - Never infer artwork from an item name or fabricate item-specific imagery.
 - Never use generated production artwork.
-- Reserve a 40x40px desktop tile and 32x32px mobile tile.
-- Official images use `object-fit: contain`.
-- Unknown or broken images use this fixed fallback:
+- Unknown or broken mappings use the real item category as a fixed fallback:
 
 ```text
-[N/A]
+HAT
 Official art unavailable
 ```
 

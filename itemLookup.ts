@@ -193,6 +193,18 @@ export let items = new Map<number, Item>();
 export let shop_items = new Map<number, Item>();
 let gachas = new Map<number, Gacha>();
 let dialog: HTMLDialogElement | undefined;
+type ItemArtEntry = [sheet: string, cell: number];
+type ItemArtSheet = {
+    lineCount: number;
+    size: number;
+    space: number;
+    width: number;
+};
+type ItemArtMap = {
+    items: Record<string, ItemArtEntry>;
+    sheets: Record<string, ItemArtSheet>;
+};
+let itemArtMap: ItemArtMap = { items: {}, sheets: {} };
 
 function prettyNumber(n: number, digits: number) {
     let s = n.toFixed(digits);
@@ -681,13 +693,14 @@ export async function downloadItems() {
     const progressbar = document.getElementById("progressbar");
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value = 0;
-        progressbar.max = 122;
+        progressbar.max = 123;
     }
     const itemSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/auth-server/src/main/resources/res";
     const gachaSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/game-server/src/main/resources/res/lottery";
     const guardianSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/server-core/src/main/resources/res";
     const itemURL = itemSource + "/Item_Parts_Ini3.xml";
     const itemData = download(itemURL);
+    const itemArtData = download("/assets/item-art-map.json");
     //const shopURL = itemSource + "/Shop_Ini3.xml";
     const max_shop_pages = 20; //currently need only 10, should be enough
     const shopURL = "/api/shop?size=1000&page=";
@@ -695,6 +708,7 @@ export async function downloadItems() {
     const guardianURL = guardianSource + "/GuardianStages.json";
     const guardianData = download(guardianURL);
     parseItemData(await itemData);
+    itemArtMap = JSON.parse(await itemArtData) as ItemArtMap;
     //parseShopData(await shopData);
     await Promise.all(shopDatas.map(p => p.then(data => parseApiShopData(data))));
 
@@ -990,11 +1004,43 @@ function createItemArtFallback(item: Item) {
     ]);
 }
 
+function createItemArt(item: Item) {
+    const art = itemArtMap.items[`${item.id}`];
+    if (!art) {
+        return createItemArtFallback(item);
+    }
+    const [sheet, cell] = art;
+    const geometry = itemArtMap.sheets[sheet];
+    if (!geometry) {
+        return createItemArtFallback(item);
+    }
+    const column = cell % geometry.lineCount;
+    const row = Math.floor(cell / geometry.lineCount);
+    const scale = 40 / geometry.size;
+    const imageSize = geometry.width * scale;
+    const offsetX = -(geometry.space + column * (geometry.size + geometry.space)) * scale;
+    const offsetY = -(geometry.space + row * (geometry.size + geometry.space)) * scale;
+    return createHTML([
+        "span",
+        {
+            class: "item-art-thumbnail",
+            role: "img",
+            "aria-label": `Official item art for ${item.name_en}`,
+            style: [
+                `--item-art-image:url("/assets/item-art/${encodeURIComponent(sheet)}.webp")`,
+                `--item-art-size:${imageSize}px`,
+                `--item-art-x:${offsetX}px`,
+                `--item-art-y:${offsetY}px`,
+            ].join(";"),
+        },
+    ]);
+}
+
 function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => boolean, priorityStats: string[], character?: Character): HTMLTableRowElement {
     const row = createHTML(
         ["tr",
             ["td", { class: "Name_column" }, deletableItem(item.name_en, item.id)],
-            ["td", { class: "Art_column" }, createItemArtFallback(item)],
+            ["td", { class: "Art_column" }, createItemArt(item)],
             ["td", { class: "Character_column" }, item.character ?? "All"],
             ["td", { class: "Part_column" }, item.part],
             ...priorityStats.map(stat => createHTML(["td", { class: "numeric" }, stat.split("+").map(s => item.statFromString(s)).join("+")])),

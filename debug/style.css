@@ -985,6 +985,21 @@ td.total {
     text-transform: uppercase;
 }
 
+.item-art-thumbnail {
+    display: block;
+    inline-size: 40px;
+    block-size: 40px;
+    margin-inline: auto;
+    overflow: hidden;
+    border: 1px solid var(--jf-border);
+    border-radius: var(--jf-radius-sm);
+    background-color: var(--jf-surface-inset);
+    background-image: var(--item-art-image);
+    background-position: var(--item-art-x) var(--item-art-y);
+    background-repeat: no-repeat;
+    background-size: var(--item-art-size) var(--item-art-size);
+}
+
 .item-art-fallback__code {
     color: var(--jf-accent-soft);
     font-size: 10px;

@@ -1,4 +1,5 @@
 const SHOP_API = "https://jftse.com/jftse-restservice/api/shop";
+const ITEM_ART_FILE = /^[A-Za-z0-9_]+\.webp$/;
 
 export async function proxyShopRequest(
     request: Request,
@@ -30,6 +31,14 @@ if (import.meta.main) {
             "/favicon.ico": Bun.file("./favicon.ico"),
             "/script.js": Bun.file("./script.js"),
             "/style.css": Bun.file("./style.css"),
+            "/assets/item-art-map.json": Bun.file("./assets/item-art-map.json"),
+            "/assets/item-art/:file": request => {
+                const file = request.params.file;
+                if (!ITEM_ART_FILE.test(file)) {
+                    return new Response("Not found", { status: 404 });
+                }
+                return new Response(Bun.file(`./assets/item-art/${file}`));
+            },
         },
         fetch() {
             return new Response("Not found", { status: 404 });

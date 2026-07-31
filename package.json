@@ -3,6 +3,7 @@
     "scripts": {
         "build": "make -j",
         "clean": "make -j clean",
+        "extract:item-art": "python3 tools/extract_item_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
         "start": "bun server.ts"
     },
     "comment": {
