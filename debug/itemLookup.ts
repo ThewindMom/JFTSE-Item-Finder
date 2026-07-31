@@ -775,7 +775,7 @@ export async function downloadItems() {
     }
 }
 
-function deletableItem(name: string, id: number) {
+function deletableItem(item: Item, character?: Character) {
     return createHTML([
         "div",
         { class: "item-identity" },
@@ -783,14 +783,55 @@ function deletableItem(name: string, id: number) {
             "button",
             {
                 class: "item_removal",
-                "data-item_index": `${id}`,
-                "aria-label": `Exclude ${name} from results`,
+                "data-item_index": `${item.id}`,
+                "aria-label": `Exclude ${item.name_en} from results`,
                 type: "button",
             },
             "Exclude",
         ]),
-        ["span", { class: "item-identity__name" }, name],
+        createItemDetailsTrigger(item, character),
     ]);
+}
+
+function showDialog(
+    trigger: HTMLButtonElement,
+    label: string,
+    content: HTMLElement | string | (HTMLElement | string)[],
+    dialogClass?: string,
+) {
+    const topDiv = document.getElementById("top_div");
+    if (!(topDiv instanceof HTMLDivElement)) {
+        return;
+    }
+    if (dialog) {
+        dialog.close();
+        dialog.remove();
+    }
+    const closeButton = createHTML([
+        "button",
+        {
+            class: dialogClass ? `${dialogClass}__close` : "dialog__close",
+            type: "button",
+        },
+        "Close",
+    ]);
+    const attributes = {
+        ...(dialogClass ? { class: dialogClass } : {}),
+        "aria-label": label,
+    };
+    dialog = Array.isArray(content)
+        ? createHTML(["dialog", attributes, ...content, closeButton])
+        : createHTML(["dialog", attributes, content, closeButton]);
+    trigger.setAttribute("aria-expanded", "true");
+    closeButton.addEventListener("click", () => dialog?.close());
+    dialog.addEventListener("close", () => {
+        trigger.setAttribute("aria-expanded", "false");
+        dialog?.remove();
+        dialog = undefined;
+        trigger.focus();
+    }, { once: true });
+    topDiv.appendChild(dialog);
+    dialog.showModal();
 }
 
 export function createPopupLink(text: string, content: HTMLElement | string | (HTMLElement | string)[]) {
@@ -805,29 +846,8 @@ export function createPopupLink(text: string, content: HTMLElement | string | (H
         text,
     ]);
     button.addEventListener("click", (event) => {
-        const top_div = document.getElementById("top_div");
-        if (!(top_div instanceof HTMLDivElement)) {
-            return;
-        }
         event.stopPropagation();
-        if (dialog) {
-            dialog.close();
-            dialog.remove();
-        }
-        const closeButton = createHTML(["button", { type: "button" }, "Close"]);
-        dialog = Array.isArray(content)
-            ? createHTML(["dialog", { "aria-label": `${text} details` }, ...content, closeButton])
-            : createHTML(["dialog", { "aria-label": `${text} details` }, content, closeButton]);
-        button.setAttribute("aria-expanded", "true");
-        closeButton.addEventListener("click", () => dialog?.close());
-        dialog.addEventListener("close", () => {
-            button.setAttribute("aria-expanded", "false");
-            dialog?.remove();
-            dialog = undefined;
-            button.focus();
-        }, { once: true });
-        top_div.appendChild(dialog);
-        dialog.showModal();
+        showDialog(button, `${text} details`, content);
     });
     return button;
 }
@@ -1136,6 +1156,101 @@ function sourceItemElement(item: Item, itemSource: ItemSource, sourceFilter: (it
     }
 }
 
+function itemDetailStats(item: Item) {
+    return [
+        ["Movement", item.movement],
+        ["Charge", item.charge],
+        ["Lob", item.lob],
+        ["Smash", item.smash],
+        ["Strength", item.str],
+        ["Dexterity", item.dex],
+        ["Stamina", item.sta],
+        ["Will", item.wil],
+        ["Serve", item.serve],
+        ["HP", item.hp],
+        ["Quickslots", item.quickslots],
+        ["Buffslots", item.buffslots],
+    ] as const;
+}
+
+function createItemDetailsContent(item: Item, character?: Character) {
+    const stats = itemDetailStats(item).filter(([, value]) => value !== 0);
+    const sources = makeSourcesList(
+        itemSourcesToElementArray(item, () => true, character),
+    );
+    return createHTML([
+        "div",
+        { class: "item-details" },
+        [
+            "header",
+            { class: "item-details__header" },
+            createItemArt(item, 72, "item-details__art"),
+            [
+                "div",
+                ["span", { class: "item-details__eyebrow" }, "Equipment details"],
+                ["h2", item.name_en],
+                [
+                    "p",
+                    { class: "item-details__meta" },
+                    `${character ?? item.character ?? "All characters"} · ${item.part} · Level ${item.level}`,
+                ],
+            ],
+        ],
+        [
+            "section",
+            { class: "item-details__section", "aria-labelledby": "item-details-stats" },
+            ["h3", { id: "item-details-stats" }, "Stats"],
+            stats.length > 0
+                ? createHTML([
+                    "dl",
+                    { class: "item-details__stats" },
+                    ...stats.map(([label, value]) => createHTML([
+                        "div",
+                        ["dt", label],
+                        ["dd", `${value}`],
+                    ])),
+                ])
+                : createHTML(["p", { class: "item-details__empty" }, "No stat bonuses"]),
+        ],
+        [
+            "section",
+            { class: "item-details__section", "aria-labelledby": "item-details-sources" },
+            ["h3", { id: "item-details-sources" }, "How to get it"],
+            sources.length > 0
+                ? createHTML(["div", { class: "item-details__sources" }, ...sources])
+                : createHTML([
+                    "p",
+                    { class: "item-details__empty" },
+                    "No active acquisition source found.",
+                ]),
+        ],
+    ]);
+}
+
+function createItemDetailsTrigger(item: Item, character?: Character) {
+    const button = createHTML([
+        "button",
+        {
+            class: "item-details-trigger",
+            type: "button",
+            "aria-haspopup": "dialog",
+            "aria-expanded": "false",
+            "aria-label": `View details for ${item.name_en}`,
+        },
+        item.name_en,
+    ]);
+    button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        showDialog(
+            button,
+            `${item.name_en} item details`,
+            createItemDetailsContent(item, character),
+            "item-details-dialog",
+        );
+    });
+    return button;
+}
+
 function createItemArtFallback(item: Item) {
     return createHTML([
         "span",
@@ -1149,14 +1264,20 @@ function createItemArtFallback(item: Item) {
     ]);
 }
 
-function createSpriteArt(sheet: string, cell: number, label: string, className: string) {
+function createSpriteArt(
+    sheet: string,
+    cell: number,
+    label: string,
+    className: string,
+    displaySize = 40,
+) {
     const geometry = itemArtMap.sheets[sheet];
     if (!geometry) {
         return;
     }
     const column = cell % geometry.lineCount;
     const row = Math.floor(cell / geometry.lineCount);
-    const scale = 40 / geometry.size;
+    const scale = displaySize / geometry.size;
     const imageSize = geometry.width * scale;
     const offsetX = -(geometry.space + column * (geometry.size + geometry.space)) * scale;
     const offsetY = -(geometry.space + row * (geometry.size + geometry.space)) * scale;
@@ -1176,7 +1297,11 @@ function createSpriteArt(sheet: string, cell: number, label: string, className: 
     ]);
 }
 
-function createItemArt(item: Item) {
+function createItemArt(
+    item: Item,
+    displaySize = 40,
+    className = "item-art-thumbnail",
+) {
     const art = itemArtMap.items[`${item.id}`];
     if (!art) {
         return createItemArtFallback(item);
@@ -1185,7 +1310,8 @@ function createItemArt(item: Item) {
         art[0],
         art[1],
         `Official item art for ${item.name_en}`,
-        "item-art-thumbnail",
+        className,
+        displaySize,
     ) ?? createItemArtFallback(item);
 }
 
@@ -1214,7 +1340,7 @@ function createGachaCoinArt(gacha: Gacha) {
 function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => boolean, priorityStats: string[], character?: Character): HTMLTableRowElement {
     const row = createHTML(
         ["tr",
-            ["td", { class: "Name_column" }, deletableItem(item.name_en, item.id)],
+            ["td", { class: "Name_column" }, deletableItem(item, character)],
             ["td", { class: "Art_column" }, createItemArt(item)],
             ["td", { class: "Character_column" }, item.character ?? "All"],
             ["td", { class: "Part_column" }, item.part],

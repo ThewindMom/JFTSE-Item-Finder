@@ -149,6 +149,28 @@ test("distinguishes AP gacha economics from Gold", async () => {
     );
 });
 
+test("opens item details with acquisition context", async () => {
+    const [renderer, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(renderer).toContain("function createItemDetailsTrigger");
+    expect(renderer).toContain('class: "item-details-trigger"');
+    expect(renderer).toContain('"aria-haspopup": "dialog"');
+    expect(renderer).toContain('"item-details-dialog",');
+    expect(renderer).toContain("{ class: dialogClass }");
+    expect(renderer).toContain('"How to get it"');
+    expect(renderer).toContain("itemSourcesToElementArray(item, () => true, character)");
+    expect(renderer).toContain('class: "item-details__stats"');
+    expect(renderer).toContain('class: "item-details__sources"');
+    expect(css).toMatch(/\.item-details-dialog[\s\S]*width:\s*min\(92vw,\s*760px\)/);
+    expect(css).toMatch(/\.item-details-trigger[\s\S]*text-decoration/);
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.item-details-dialog__close[\s\S]*min-height:\s*44px/,
+    );
+});
+
 test("presents a task-first finder workspace", async () => {
     const [html, css] = await Promise.all([
         projectFile("./index.html"),
