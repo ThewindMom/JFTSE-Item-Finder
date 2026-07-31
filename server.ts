@@ -31,6 +31,9 @@ if (import.meta.main) {
             "/favicon.ico": Bun.file("./favicon.ico"),
             "/script.js": Bun.file("./script.js"),
             "/style.css": Bun.file("./style.css"),
+            "/assets/fantasy-tennis-island.webp": Bun.file(
+                "./assets/fantasy-tennis-island.webp",
+            ),
             "/assets/item-art-map.json": Bun.file("./assets/item-art-map.json"),
             "/assets/item-art/:file": request => {
                 const file = request.params.file;

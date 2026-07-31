@@ -171,6 +171,105 @@ test("opens item details with acquisition context", async () => {
     );
 });
 
+test("presents the Night Court equipment lab", async () => {
+    const [html, css] = await Promise.all([
+        projectFile("./index.html"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(html).toContain('class="finder-heading world-stage"');
+    expect(html).toContain("Find your perfect build");
+    expect(html).toContain('class="player-journey"');
+    expect(html).toContain(">Find<");
+    expect(html).toContain(">Compare<");
+    expect(html).toContain(">Acquire<");
+    expect(html).toContain('class="authentic-data-cue"');
+    expect(css).toContain("--jf-court-line:");
+    expect(css).toContain("--jf-world-glow:");
+    expect(css).toMatch(
+        /\.world-stage[\s\S]*url\("\/assets\/fantasy-tennis-island\.webp"\)/,
+    );
+    expect(css).toMatch(/\.filter-stack[\s\S]*input\[type="search"\][\s\S]*box-shadow/);
+    expect(css).toMatch(/\.results-panel[\s\S]*isolation:\s*isolate/);
+});
+
+test("keeps the premium finder task-first on mobile", async () => {
+    const [html, css] = await Promise.all([
+        projectFile("./index.html"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(html.indexOf('id="results_group"')).toBeLessThan(
+        html.indexOf('id="controlRail"'),
+    );
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.world-stage[\s\S]*width:\s*auto[\s\S]*background-position:\s*center/,
+    );
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.filter-toggle[\s\S]*min-block-size:\s*44px/,
+    );
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.control-rail[\s\S]*backdrop-filter:\s*blur\(20px\)/,
+    );
+    expect(css).toMatch(
+        /\.table-scroll[\s\S]*overscroll-behavior-inline:\s*contain/,
+    );
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.item-details-dialog[\s\S]*border-radius:\s*18px/,
+    );
+});
+
+test("uses restrained motion and explicit interaction states", async () => {
+    const [renderer, main, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./main.ts"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(css).toContain("--jf-motion-fast: 120ms ease-out");
+    expect(css).toContain("--jf-motion-standard: 200ms ease-out");
+    expect(css).toMatch(
+        /\.item-details-dialog\[open\][\s\S]*animation:\s*item-details-enter var\(--jf-motion-standard\)/,
+    );
+    expect(css).toMatch(/@keyframes item-details-enter/);
+    expect(css).toMatch(
+        /\.filter-toggle:active,[\s\S]*\.item-details-trigger:active[\s\S]*transform:/,
+    );
+    expect(css).toMatch(
+        /:focus-visible[\s\S]*box-shadow:\s*0 0 0 4px var\(--jf-accent-glow\)/,
+    );
+    expect(css).toMatch(
+        /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.item-details-dialog\[open\][\s\S]*animation:\s*none !important[\s\S]*transform:\s*none !important/,
+    );
+    expect(renderer).toContain('"data-currency": currency');
+    expect(renderer).toContain("Not directly purchasable");
+    expect(main).not.toContain("setTimeout(updateResults");
+});
+
+test("serves an authentic Fantasy Tennis world visual", async () => {
+    const [extractor, server, design] = await Promise.all([
+        projectFile("./tools/extract_item_art.py"),
+        projectFile("./server.ts"),
+        projectFile("./DESIGN.md"),
+    ]);
+    const worldVisual = Bun.file(
+        new URL("./assets/fantasy-tennis-island.webp", import.meta.url),
+    );
+
+    expect(await worldVisual.exists()).toBe(true);
+    expect(extractor).toContain('"Main.res"');
+    expect(extractor).toContain('"Main.tex"');
+    expect(extractor).toContain('"worldVisual"');
+    expect(server).toContain('"/assets/fantasy-tennis-island.webp"');
+    expect(design).toContain("Res/GuiRes/Main.res :: Main.tex");
+    if (await worldVisual.exists()) {
+        const bytes = new Uint8Array(await worldVisual.arrayBuffer());
+        expect(new TextDecoder().decode(bytes.slice(0, 4))).toBe("RIFF");
+        expect(new TextDecoder().decode(bytes.slice(8, 12))).toBe("WEBP");
+        expect(bytes.length).toBeGreaterThan(10_000);
+    }
+});
+
 test("presents a task-first finder workspace", async () => {
     const [html, css] = await Promise.all([
         projectFile("./index.html"),
@@ -232,6 +331,9 @@ test("contains keyboard focus inside the mobile refinement drawer", async () => 
     expect(script).toContain('event.key !== "Tab"');
     expect(script).toContain("focusableElements[focusableElements.length - 1]");
     expect(script).toContain("focusableElements[0]");
+    expect(script).toContain(
+        'panel.addEventListener("transitionend", focusAfterOpen)',
+    );
 });
 
 test("builds TypeScript before browser bundles", async () => {

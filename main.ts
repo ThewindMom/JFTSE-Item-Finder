@@ -653,6 +653,14 @@ function setMobileFilterControls() {
         if (open) {
             const nameFilter = document.getElementById("nameFilter");
             if (nameFilter instanceof HTMLInputElement) {
+                const focusAfterOpen = (event: TransitionEvent) => {
+                    if (event.propertyName !== "transform") {
+                        return;
+                    }
+                    panel.removeEventListener("transitionend", focusAfterOpen);
+                    nameFilter.focus();
+                };
+                panel.addEventListener("transitionend", focusAfterOpen);
                 nameFilter.focus();
             }
         }

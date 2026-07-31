@@ -76,14 +76,39 @@ def dds_dxt5(width: int, height: int, payload: bytes) -> bytes:
     return b"DDS " + header + pixel_format + caps + payload
 
 
-def decode_texture(texture: bytes, width: int) -> Image.Image:
+def decode_texture(texture: bytes, width: int, height: int | None = None) -> Image.Image:
+    height = height or width
     payload = texture[128:]
-    raw_size = width * width * 4
+    raw_size = width * height * 4
     if len(payload) >= raw_size:
-        return Image.frombytes("RGBA", (width, width), payload[:raw_size], "raw", "BGRA")
+        return Image.frombytes("RGBA", (width, height), payload[:raw_size], "raw", "BGRA")
 
-    dxt5_size = width * width
-    return Image.open(io.BytesIO(dds_dxt5(width, width, payload[:dxt5_size]))).convert("RGBA")
+    dxt5_size = width * height
+    return Image.open(
+        io.BytesIO(dds_dxt5(width, height, payload[:dxt5_size]))
+    ).convert("RGBA")
+
+
+def extract_world_visual(client_root: Path, output_root: Path) -> dict[str, str | int]:
+    source_archive = Path("Res") / "GuiRes" / "Main.res"
+    source_entry = "Main.tex"
+    with zipfile.ZipFile(client_root / source_archive) as archive:
+        texture = decode_texture(archive.read(source_entry), 1024, 512)
+    image = texture.crop((0, 0, 512, 512)).convert("RGB")
+    output_file = "fantasy-tennis-island.webp"
+    image.save(
+        output_root / output_file,
+        "WEBP",
+        quality=90,
+        method=6,
+    )
+    return {
+        "file": output_file,
+        "height": image.height,
+        "sourceArchive": source_archive.as_posix(),
+        "sourceEntry": source_entry,
+        "width": image.width,
+    }
 
 
 def build_sheet_index(gui_root: Path, wanted: set[str]) -> dict[str, tuple[Path, str]]:
@@ -187,12 +212,14 @@ def extract_item_art(client_root: Path, output_root: Path) -> None:
         geometry["width"] = width
 
     output_root.mkdir(parents=True, exist_ok=True)
+    world_visual = extract_world_visual(client_root, output_root)
     (output_root / "item-art-map.json").write_text(
         json.dumps(
             {
                 "items": items,
                 "lotteries": lotteries,
                 "sheets": {sheet: sheets[sheet] for sheet in sorted(used_sheets)},
+                "worldVisual": world_visual,
             },
             separators=(",", ":"),
             sort_keys=True,

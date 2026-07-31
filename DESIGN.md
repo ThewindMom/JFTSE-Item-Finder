@@ -14,7 +14,46 @@ compare the best matches.
 - Semantic comparison table on every viewport.
 - Authentic JFTSE/Fantasy Tennis artwork only when a reliable mapping exists.
 - Honest named fallback tiles when official item art is unavailable.
-- No hero, gradient mesh, particles, fabricated logos, or AI-generated production imagery.
+- No marketing hero, gradient mesh, particles, fabricated logos, or AI-generated production imagery.
+
+## Night Court Equipment Lab
+
+The premium direction is a **Night Court Equipment Lab**: a quiet, cinematic match desk
+where players find gear, compare real numbers, and understand acquisition costs before
+spending AP or Gold. It evolves the utility rather than replacing it.
+
+- The restrained world-stage establishes Fantasy Tennis immediately, then yields to the task.
+- The visible player journey is `Find` → `Compare` → `Acquire`.
+- The refinement rail remains compact and secondary to the comparison canvas.
+- The semantic table remains the canonical comparison surface on every viewport.
+- Authentic item and gacha sprites are the emotional focal points; interface chrome stays calm.
+- Cyan means action, focus, or active state. Gold and AP retain explicit written labels.
+- Premium quality comes from hierarchy, typography, spacing, texture, and state feedback—not
+  from continuous effects or decorative feature invention.
+
+### Authentic world visual provenance
+
+The local world-stage image is extracted from the distributed Fantasy Tennis client:
+
+`Res/GuiRes/Main.res :: Main.tex`
+
+The extraction pipeline decodes the first 512×512 DXT5 world frame and emits
+`assets/fantasy-tennis-island.webp`. `assets/item-art-map.json` records the exact archive,
+entry, dimensions, and output filename under `worldVisual`.
+
+Generated desktop and mobile concept images are **layout inspiration only**. They must never
+ship as production imagery, replace item-specific art, imply unsupported map/tracking features,
+or override the authentic client sprites and server data.
+
+### Spatial model
+
+- Desktop: 56px app bar, restrained world-stage, sticky 18–20rem refinement rail, dominant
+  comparison canvas, and centered item dossier.
+- Mobile: 48px app bar, compact world-stage, results-first source order, complete modal
+  refinement drawer, sticky item identity, table-contained horizontal scrolling, and a
+  near-full-height item dossier.
+- The first desktop viewport must still expose comparison rows; the world-stage is atmosphere,
+  not a landing-page detour.
 
 ## Design tokens
 
