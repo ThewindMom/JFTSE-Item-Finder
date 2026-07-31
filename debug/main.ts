@@ -632,11 +632,11 @@ setDisplayUpdates();
 function setMobileFilterControls() {
     const filterToggle = document.getElementById("filterToggle");
     const closeFilters = document.getElementById("closeFilters");
-    const filterPanel = document.getElementById("filter_group");
+    const filterPanel = document.getElementById("controlRail");
     const filterBackdrop = document.getElementById("filterBackdrop");
     if (!(filterToggle instanceof HTMLButtonElement)
         || !(closeFilters instanceof HTMLButtonElement)
-        || !(filterPanel instanceof HTMLFieldSetElement)
+        || !(filterPanel instanceof HTMLElement)
         || !(filterBackdrop instanceof HTMLButtonElement)) {
         return;
     }
@@ -665,11 +665,35 @@ function setMobileFilterControls() {
     closeButton.addEventListener("click", () => setOpen(false));
     backdropButton.addEventListener("click", () => setOpen(false));
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && panel.classList.contains("is-open")) {
+        if (!panel.classList.contains("is-open")) {
+            return;
+        }
+        if (event.key === "Escape") {
             setOpen(false);
+            return;
+        }
+        if (event.key !== "Tab") {
+            return;
+        }
+        const focusableElements = Array.from(panel.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
+        )).filter(element => element.getClientRects().length > 0);
+        if (focusableElements.length === 0) {
+            return;
+        }
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        if (event.shiftKey && document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+        }
+        else if (!event.shiftKey
+            && (!panel.contains(document.activeElement) || document.activeElement === lastElement)) {
+            event.preventDefault();
+            firstElement.focus();
         }
     });
-    window.matchMedia("(min-width: 768px)").addEventListener("change", ({ matches }) => {
+    window.matchMedia("(min-width: 880px)").addEventListener("change", ({ matches }) => {
         if (matches && panel.classList.contains("is-open")) {
             setOpen(false);
         }
@@ -677,6 +701,22 @@ function setMobileFilterControls() {
 }
 
 setMobileFilterControls();
+
+function setResetFilterControl() {
+    const resetFilters = document.getElementById("resetFilters");
+    const refinementStatus = document.getElementById("refinementStatus");
+    if (!(resetFilters instanceof HTMLButtonElement)
+        || !(refinementStatus instanceof HTMLElement)) {
+        return;
+    }
+    resetFilters.addEventListener("click", () => {
+        refinementStatus.textContent = "Resetting filters…";
+        Variable_storage.clear_all();
+        window.location.reload();
+    });
+}
+
+setResetFilterControl();
 
 function setItemTypeSelectorFunctionality() {
     const priority_group = document.getElementById("priority_group");
@@ -720,10 +760,26 @@ function setItemTypeSelectorFunctionality() {
 
 window.addEventListener("load", async () => {
     const resultsGroup = document.getElementById("results_group");
+    const resultsStatus = document.getElementById("resultsStatus");
+    const loadingLabel = document.getElementById("loading");
+    const loadingCopy = document.querySelector(".loading-state__copy span");
+    if (!(resultsStatus instanceof HTMLElement)
+        || !(loadingLabel instanceof HTMLLabelElement)
+        || !(loadingCopy instanceof HTMLElement)) {
+        throw "Internal error";
+    }
     resultsGroup?.setAttribute("aria-busy", "true");
     setItemTypeSelectorFunctionality();
     restoreSelection();
-    await downloadItems();
+    try {
+        await downloadItems();
+    } catch {
+        resultsStatus.textContent = "Item data unavailable";
+        loadingLabel.textContent = "Could not load equipment data";
+        loadingCopy.textContent = "Check the preview server connection, then reload this page.";
+        resultsGroup?.setAttribute("aria-busy", "false");
+        return;
+    }
     for (const element of document.getElementsByClassName("show_after_load")) {
         if (element instanceof HTMLElement) {
             element.hidden = false;

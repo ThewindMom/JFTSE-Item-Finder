@@ -388,7 +388,6 @@ function parseShopData(data: string) {
     if (data.length < 1000) {
         console.warn(`Shop file is only ${data.length} bytes long`);
     }
-    let count = 0;
     let currentIndex = 0;
     for (const match of data.matchAll(/<Product DISPLAY="\d+" HIT_DISPLAY="\d+" Index="(?<index>\d+)" Enable="(?<enabled>0|1)" New="\d+" Hit="\d+" Free="\d+" Sale="\d+" Event="\d+" Couple="\d+" Nobuy="\d+" Rand="[^"]+" UseType="[^"]+" Use0="\d+" Use1="\d+" Use2="\d+" PriceType="(?<price_type>(?:MINT)|(?:GOLD))" OldPrice0="-?\d+" OldPrice1="-?\d+" OldPrice2="-?\d+" Price0="(?<price>-?\d+)" Price1="-?\d+" Price2="-?\d+" CouplePrice="-?\d+" Category="(?<category>[^"]*)" Name="(?<name>[^"]*)" GoldBack="-?\d+" EnableParcel="(?<parcel_from_shop>0|1)" Char="-?\d+" Item0="(?<item0>-?\d+)" Item1="(?<item1>-?\d+)" Item2="(?<item2>-?\d+)" Item3="(?<item3>-?\d+)" Item4="(?<item4>-?\d+)" Item5="(?<item5>-?\d+)" Item6="(?<item6>-?\d+)" Item7="(?<item7>-?\d+)" Item8="(?<item8>-?\d+)" Item9="(?<item9>-?\d+)" ?(?:Icon="[^"]*" ?)?(?:Name_kr="[^"]*" ?)?(?:Name_en="(?<name_en>[^"]*)" ?)?(?:Name_th="[^"]*" ?)?\/>/g)) {
         if (!match.groups) {
@@ -452,9 +451,7 @@ function parseShopData(data: string) {
             otherItem.name_en = match.groups.name_en || match.groups.name;
             shop_items.set(index, otherItem);
         }
-        count++;
     }
-    console.log(`Found ${count} shop items`);
 }
 
 class ApiItem {
@@ -673,14 +670,9 @@ export async function download(url: string): Promise<string> {
         progressbar.value++;
     }
     if (!reply.ok) {
-        alert(`Oops, something broke. Complain to Lilli/Kanone/XxharCs about:\nFailed downloading ${url} because of ${reply.status}${reply.statusText ? " " + reply.status : ""}.`);
-        if (url.endsWith(".json")) {
-            return "[]";
-        }
-        else if (url.endsWith(".xml")) {
-            return "<_></_>";
-        }
-        return "";
+        throw new Error(
+            `Failed downloading ${url}: ${reply.status}${reply.statusText ? ` ${reply.statusText}` : ""}`
+        );
     }
     return reply.text();
 }
@@ -698,7 +690,7 @@ export async function downloadItems() {
     const itemData = download(itemURL);
     //const shopURL = itemSource + "/Shop_Ini3.xml";
     const max_shop_pages = 20; //currently need only 10, should be enough
-    const shopURL = "https://jftse.com/jftse-restservice/api/shop?size=1000&page=";
+    const shopURL = "/api/shop?size=1000&page=";
     const shopDatas = [...Array(max_shop_pages).keys()].map(n => download(`${shopURL}${n}`));
     const guardianURL = guardianSource + "/GuardianStages.json";
     const guardianData = download(guardianURL);
@@ -706,7 +698,6 @@ export async function downloadItems() {
     //parseShopData(await shopData);
     await Promise.all(shopDatas.map(p => p.then(data => parseApiShopData(data))));
 
-    console.log(`Found ${gachas.size} gachas`);
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value = 0;
         progressbar.max = gachas.size + 3;
@@ -724,7 +715,6 @@ export async function downloadItems() {
             console.warn(`Failed downloading ${gacha_url} because ${e}`);
         }
     }
-    console.log(`Loaded ${items.size} items`);
 }
 
 function deletableItem(name: string, id: number) {
@@ -995,7 +985,7 @@ function createItemArtFallback(item: Item) {
             role: "img",
             "aria-label": `Official item art unavailable for ${item.name_en}`,
         },
-        ["span", { class: "item-art-fallback__code", "aria-hidden": "true" }, "[N/A]"],
+        ["span", { class: "item-art-fallback__code", "aria-hidden": "true" }, item.part || "Item"],
         ["span", { "aria-hidden": "true" }, "Official art unavailable"],
     ]);
 }

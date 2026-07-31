@@ -2,12 +2,15 @@
 
 ## Product direction
 
-The finder is a dense comparison utility, not a marketing landing page. It borrows the live
-JFTSE site's dark indigo surfaces, cyan signal color, condensed type, and restrained glow while
-keeping filters and table data primary.
+The finder is an Operate-mode comparison utility, not a marketing landing page or a dashboard.
+It borrows the live JFTSE site's dark indigo surfaces, cyan signal color, condensed type, and
+restrained glow while putting the player's actual task first: narrow the equipment pool, then
+compare the best matches.
 
 - Dark utility shell with compact, readable controls.
-- Search-first filter hierarchy.
+- Task-first hierarchy: refinement rail, then dominant result canvas.
+- Search, level, enchantment, and character are always available.
+- Advanced filters and stat ranking use named native disclosures.
 - Semantic comparison table on every viewport.
 - Authentic JFTSE/Fantasy Tennis artwork only when a reliable mapping exists.
 - Honest named fallback tiles when official item art is unavailable.
@@ -95,20 +98,22 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 ### Desktop (1200px and wider)
 
 - Content maximum width: 1440px; page padding: 24px; app bar: 56px.
-- Three-column grid: `minmax(18rem, 20rem) minmax(14rem, 17rem) minmax(0, 1fr)`.
-- Gap: 16px. Results always have `min-width: 0`.
+- Two-part workspace: `minmax(18rem, 20rem) minmax(0, 1fr)`.
+- The refinement rail stacks essential filters and collapsed ranking controls.
+- Gap: 20px. Results own the remaining width and always have `min-width: 0`.
+- The result header and first comparison rows remain visible in the first viewport at 1440x900.
 - Only the labelled table wrapper may scroll horizontally.
 
-### Tablet (768px to 1199px)
+### Tablet (880px to 1199px)
 
-- Filter and Sort Priority form the first row.
-- Results span the complete second row.
+- The same two-part workspace holds with a narrower `17rem` refinement rail.
+- Advanced filter groups remain collapsed by default.
 - Page padding: 16px.
 
-### Mobile (below 768px)
+### Mobile (below 880px)
 
 - Single-column flow with page padding 12px and app bar 48px.
-- A 44px Filter button controls a modal drawer with a backdrop.
+- A 44px `Refine results` button controls the complete refinement rail as a modal drawer.
 - Inputs and buttons are at least 44px high.
 - Results stay a semantic table in a horizontal scroll wrapper.
 - The item-name column remains sticky.
@@ -131,16 +136,23 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 
 ### Filter panel
 
-Order:
+Immediate controls:
 
 1. Item name search.
 2. Maximum level slider with visible output.
 3. Post-enchantment toggle.
 4. Character radios.
-5. Item type radios.
-6. Parts checkbox tree.
-7. Availability checkbox tree.
-8. Excluded items.
+
+The `More filters` native disclosure contains:
+
+1. Item type radios.
+2. Parts checkbox tree.
+3. Availability checkbox tree.
+4. Excluded items.
+
+The rail exposes a visible `Reset filters` action and an `Updates instantly` status. Reset clears
+persisted filter state and restores the documented defaults. Live updates remain the only apply
+model; never add an Apply button that implies stale results.
 
 Every control has a visible label. The slider label reads `Max level requirement: 100`. “Other
 items” is disabled and not focusable. Parent checkboxes expose mixed state. Empty exclusions read
@@ -148,6 +160,8 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 
 ### Sort priority
 
+- Ranking lives in a separate native disclosure named `Ranking priorities`.
+- Its closed summary communicates that movement speed is currently ranked first.
 - Rows show rank, drag affordance, and stat label.
 - Desktop rows are 32px minimum; mobile rows are 44px minimum.
 - Dragging is progressive enhancement. Existing drag/drop behavior is preserved.
@@ -155,6 +169,8 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 
 ### Results
 
+- Results are the visual anchor: wider, higher contrast, and first in mobile DOM reading order
+  after the compact page heading.
 - Use `<table>`, `<caption>`, `<thead>`, `<tbody>`, and `<tfoot>` where data permits.
 - Columns: Item, Art, Character, Part, priority statistics, Level, Source.
 - Header: 36px desktop and 44px mobile. Rows: 40px desktop and 44px mobile.
@@ -164,6 +180,7 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 - Loading uses `aria-busy` plus polite progress text.
 - Empty state reads `No items match these filters.`
 - Result count is announced politely.
+- Loading and error copy appears inline in this panel; never use an alert dialog for network errors.
 
 ### Source details
 
@@ -194,6 +211,7 @@ The fallback is a bordered inset tile with the accessible label
 
 - Use `header`, `main`, and `footer` landmarks and one visible `<h1>`.
 - Preserve native inputs. Maintain WCAG AA contrast.
+- Use native `<details>/<summary>` for progressive disclosure so keyboard and state semantics are free.
 - Focus: `outline: 3px solid var(--jf-focus); outline-offset: 2px`.
 - Targets: 44x44px mobile and 32x32px desktop.
 - Never communicate state by color alone.
@@ -217,3 +235,11 @@ The fallback is a bordered inset tile with the accessible label
 - Hover-only information or color-only status.
 - Visible developer TODO content.
 - Continuous decorative animation.
+
+## Accepted debt
+
+- Priority reordering remains pointer-drag based in this increment; the original keyboard parity
+  gap is preserved rather than expanded. The rows remain readable and the ranking disclosure is
+  keyboard accessible.
+- Item data still depends on live JFTSE and GitHub sources. The local Bun preview supplies a
+  same-origin shop proxy and a named inline error state, but it does not cache a full offline copy.

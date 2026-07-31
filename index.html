@@ -38,106 +38,27 @@
         <div>
             <p class="finder-heading__eyebrow">Equipment database</p>
             <h1 id="finder-title">JFTSE Item Finder</h1>
-            <p>Compare equipment stats and discover where every item can be found.</p>
+            <p>Find the strongest equipment for the stats you care about.</p>
         </div>
-        <button class="filter-toggle" id="filterToggle" type="button" aria-controls="filter_group"
+        <button class="filter-toggle" id="filterToggle" type="button" aria-controls="controlRail"
             aria-expanded="false">
-            <span aria-hidden="true">☰</span>
-            Filters
+            Refine results
         </button>
     </section>
 
     <button class="filter-backdrop" id="filterBackdrop" type="button" aria-label="Close filters" hidden></button>
 
-    <main class="finder-layout">
-        <fieldset class="panel filter-panel" id="filter_group" data-mobile-filter-panel>
-            <legend>Find equipment</legend>
-            <div class="panel__mobile-header">
-                <span>Filters</span>
-                <button id="closeFilters" type="button" aria-label="Close filters">Close</button>
-            </div>
-
-            <div id="miscFilter" class="filter-stack">
-                <div class="control-group control-group--search">
-                    <label for="nameFilter">Item name</label>
-                    <input type="search" id="nameFilter" placeholder="Search items by name" spellcheck="false"
-                        autocomplete="off">
-                </div>
-
-                <div class="control-group">
-                    <label id="levelDisplay" for="levelrange">Max level requirement: 100</label>
-                    <input type="range" min="1" max="100" value="100" id="levelrange">
-                </div>
-
-                <div class="toggle-row" id="enchantdiv">
-                    <input type="checkbox" id="enchantToggle">
-                    <label for="enchantToggle">Show post-enchantment stats</label>
-                </div>
-            </div>
-
-            <div class="filter-section">
-                <h2>Character</h2>
-                <div id="characterFilters" class="choice-list"></div>
-            </div>
-
-            <div class="filter-section">
-                <h2>Item type</h2>
-                <div class="choice-list choice-list--types">
-                    <input id="partsSelector" type="radio" name="itemTypeSelector">
-                    <label for="partsSelector">Equipment</label>
-                    <input id="gachaSelector" type="radio" name="itemTypeSelector">
-                    <label for="gachaSelector">Gacha</label>
-                    <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled" disabled
-                        aria-disabled="true">
-                    <label for="otherItemsSelector" class="disabled">Other items <span>(coming soon)</span></label>
-                </div>
-            </div>
-
-            <div class="filter-section">
-                <h2>Equipment slots</h2>
-                <div id="partsFilter"></div>
-            </div>
-
-            <div class="filter-section">
-                <h2>Availability</h2>
-                <div id="availabilityFilter"></div>
-            </div>
-
-            <div class="filter-section exclusion-section">
-                <h2>Excluded items</h2>
-                <p class="section-hint">Remove an item from results to compare alternatives.</p>
-                <div id="itemFilter" aria-live="polite">
-                    <p class="empty-note">No excluded items</p>
-                </div>
-            </div>
-        </fieldset>
-
-        <fieldset class="panel priority-panel" id="priority_group">
-            <legend id="priority_legend">Sort priority</legend>
-            <p class="panel-intro">Drag stats to rank the attributes that matter most.</p>
-            <ol reversed id="priority_list" aria-label="Item stat priority">
-                <li class="dropzone" draggable="true">Mov Speed</li>
-                <li class="dropzone" draggable="true">Charge</li>
-                <li class="dropzone" draggable="true">Lob</li>
-                <li class="dropzone" draggable="true">Smash</li>
-                <li class="dropzone" draggable="true">Str</li>
-                <li class="dropzone" draggable="true">Dex</li>
-                <li class="dropzone" draggable="true">Sta</li>
-                <li class="dropzone" draggable="true">Will</li>
-                <li class="dropzone" draggable="true">Serve</li>
-                <li class="dropzone" draggable="true">Quickslots</li>
-                <li class="dropzone" draggable="true">Buffslots</li>
-                <li class="dropzone" draggable="true">HP</li>
-            </ol>
-        </fieldset>
-
+    <main class="finder-workspace">
         <section class="panel results-panel" id="results_group" aria-labelledby="results-title">
             <div class="results-panel__header">
                 <div>
-                    <p class="panel-kicker">Live comparison</p>
-                    <h2 id="results-title">Results</h2>
+                    <p class="panel-kicker">Best matches</p>
+                    <h2 id="results-title">Equipment results</h2>
                 </div>
-                <p id="resultsStatus" class="results-status" aria-live="polite">Loading item data…</p>
+                <div class="results-panel__meta">
+                    <p id="resultsStatus" class="results-status" aria-live="polite">Loading item data…</p>
+                    <p class="table-scroll-hint">Scroll horizontally for more stats →</p>
+                </div>
             </div>
 
             <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite">
@@ -152,6 +73,105 @@
                 <div id="results" class="show_after_load" hidden></div>
             </div>
         </section>
+
+        <aside class="control-rail" id="controlRail" data-mobile-filter-panel aria-label="Refine equipment results">
+            <div class="panel__mobile-header">
+                <span>Refine results</span>
+                <button id="closeFilters" type="button" aria-label="Close filters">Close</button>
+            </div>
+
+            <fieldset class="panel filter-panel" id="filter_group">
+                <legend>Refine equipment</legend>
+                <div class="rail-actions">
+                    <p id="refinementStatus" class="refinement-status" role="status">Updates instantly</p>
+                    <button id="resetFilters" class="text-action" type="button">Reset filters</button>
+                </div>
+
+                <div id="miscFilter" class="filter-stack">
+                    <div class="control-group control-group--search">
+                        <label for="nameFilter">Search equipment</label>
+                        <input type="search" id="nameFilter" placeholder="Name or keyword" spellcheck="false"
+                            autocomplete="off">
+                    </div>
+
+                    <div class="control-group">
+                        <label id="levelDisplay" for="levelrange">Max level requirement: 100</label>
+                        <input type="range" min="1" max="100" value="100" id="levelrange">
+                    </div>
+
+                    <div class="toggle-row" id="enchantdiv">
+                        <input type="checkbox" id="enchantToggle">
+                        <label for="enchantToggle">Show post-enchantment stats</label>
+                    </div>
+                </div>
+
+                <div class="filter-section filter-section--character">
+                    <h2>Character</h2>
+                    <div id="characterFilters" class="choice-list"></div>
+                </div>
+
+                <details class="advanced-filters">
+                    <summary>More filters <span>Type, slots, and availability</span></summary>
+                    <div class="disclosure-content">
+                        <div class="filter-section">
+                            <h2>Item type</h2>
+                            <div class="choice-list choice-list--types">
+                                <input id="partsSelector" type="radio" name="itemTypeSelector">
+                                <label for="partsSelector">Equipment</label>
+                                <input id="gachaSelector" type="radio" name="itemTypeSelector">
+                                <label for="gachaSelector">Gacha</label>
+                                <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled"
+                                    disabled aria-disabled="true">
+                                <label for="otherItemsSelector" class="disabled">Other items <span>(coming
+                                        soon)</span></label>
+                            </div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h2>Equipment slots</h2>
+                            <div id="partsFilter"></div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h2>Availability</h2>
+                            <div id="availabilityFilter"></div>
+                        </div>
+
+                        <div class="filter-section exclusion-section">
+                            <h2>Excluded items</h2>
+                            <p class="section-hint">Remove an item to compare alternatives.</p>
+                            <div id="itemFilter" aria-live="polite">
+                                <p class="empty-note">No excluded items</p>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </fieldset>
+
+            <fieldset class="panel priority-panel" id="priority_group">
+                <legend id="priority_legend">Result ranking</legend>
+                <details class="ranking-disclosure">
+                    <summary>Ranking priorities <span>Movement speed first</span></summary>
+                    <div class="disclosure-content">
+                        <p class="panel-intro">Drag stats to change which attributes win.</p>
+                        <ol reversed id="priority_list" aria-label="Item stat priority">
+                            <li class="dropzone" draggable="true">Mov Speed</li>
+                            <li class="dropzone" draggable="true">Charge</li>
+                            <li class="dropzone" draggable="true">Lob</li>
+                            <li class="dropzone" draggable="true">Smash</li>
+                            <li class="dropzone" draggable="true">Str</li>
+                            <li class="dropzone" draggable="true">Dex</li>
+                            <li class="dropzone" draggable="true">Sta</li>
+                            <li class="dropzone" draggable="true">Will</li>
+                            <li class="dropzone" draggable="true">Serve</li>
+                            <li class="dropzone" draggable="true">Quickslots</li>
+                            <li class="dropzone" draggable="true">Buffslots</li>
+                            <li class="dropzone" draggable="true">HP</li>
+                        </ol>
+                    </div>
+                </details>
+            </fieldset>
+        </aside>
     </main>
 
     <footer class="site-footer">

@@ -1,3 +1,5 @@
+/// <reference types="bun" />
+
 import { beforeEach, expect, test } from "bun:test";
 
 import { selectByPriority, type PriorityComparator } from "./priority";
