@@ -188,6 +188,27 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 - Details open in a labelled native `<dialog>`, dismiss with Escape or Close, and restore focus.
 - Gold, AP, gacha, and Guardian sources always retain text labels.
 
+### Gacha acquisition summaries
+
+The source cell answers the player's decisions in this order:
+
+1. **Which coin?** Authentic extracted coin art, exact coin name, and a textual color/shape label.
+2. **Can I buy it?** `Gold`, `AP`, or `Not directly purchasable` is always written out.
+3. **What does one pull cost?** Show the unit price beside the denomination.
+4. **How likely is this item?** Show the per-pull percentage before expected-value figures.
+5. **How much effort should I expect?** Show expected pulls and expected total spend.
+6. **What else is in the pool?** Keep complete pool odds in the existing labelled dialog.
+
+The summary uses one compact coin row and one metrics row, not a sentence assembled from
+unlabelled numbers. Gold uses a warm semantic chip and AP uses a cool semantic chip, but
+both retain explicit text; color is never the only denomination signal. Coin color is also
+written (`Burgundy-gold coin`, `Blue cube`, and so on) because the artwork alone is not
+accessible evidence. At narrow widths the metrics wrap within the Source cell while the
+table remains its own horizontal scroll region.
+
+If a coin has no enabled direct shop source, never infer a price or denomination. Show
+`Not directly purchasable` and preserve the nested alternative acquisition path.
+
 ## Item art policy
 
 The public API has no item-image URL, but the extracted Fantasy Tennis client is authoritative:

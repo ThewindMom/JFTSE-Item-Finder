@@ -64,7 +64,8 @@ test("renders authentic extracted client artwork when mapped", async () => {
     ]);
 
     expect(renderer).toContain('"/assets/item-art-map.json"');
-    expect(renderer).toContain('class: "item-art-thumbnail"');
+    expect(renderer).toContain('"item-art-thumbnail",');
+    expect(renderer).toContain("class: className");
     expect(renderer).toContain('Official item art for ${item.name_en}');
     expect(server).toContain('"/assets/item-art-map.json"');
     expect(server).toContain('"/assets/item-art/:file"');
@@ -81,6 +82,71 @@ test("renders authentic extracted client artwork when mapped", async () => {
     expect(
         await Bun.file(new URL("./assets/item-art/Item_Common01.webp", import.meta.url)).exists(),
     ).toBe(true);
+});
+
+test("renders actionable gold gacha acquisition summaries", async () => {
+    const [renderer, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./style.css"),
+    ]);
+    const map = await Bun.file(
+        new URL("./assets/item-art-map.json", import.meta.url),
+    ).json() as {
+        lotteries?: Record<string, {
+            sheet: string;
+            cell: number;
+            color: string;
+            shape: string;
+        }>;
+    };
+
+    expect(map.lotteries?.["19"]).toEqual({
+        sheet: "Item_GatchaCoin00",
+        cell: 12,
+        color: "Burgundy-gold",
+        shape: "coin",
+    });
+    expect(renderer).toContain('class: "gacha-source-summary"');
+    expect(renderer).toContain("Expected spend");
+    expect(renderer).toContain("per pull");
+    expect(renderer).toContain("Chance");
+    expect(css).toMatch(/\.gacha-source-summary[\s\S]*\.gacha-economics/);
+    expect(css).toMatch(/\.gacha-currency--gold/);
+});
+
+test("distinguishes AP gacha economics from Gold", async () => {
+    const [renderer, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./style.css"),
+    ]);
+    const map = await Bun.file(
+        new URL("./assets/item-art-map.json", import.meta.url),
+    ).json() as {
+        lotteries?: Record<string, {
+            sheet: string;
+            cell: number;
+            color: string;
+            shape: string;
+        }>;
+    };
+
+    expect(map.lotteries?.["25"]).toEqual({
+        sheet: "Item_GatchaCoin00",
+        cell: 13,
+        color: "Cyan",
+        shape: "coin",
+    });
+    expect(renderer).toContain('"data-currency": currency');
+    expect(renderer).toContain("gacha-currency--${currency.toLowerCase()}");
+    expect(renderer).toContain('class: "item-identity"');
+    expect(css).toMatch(/\.gacha-currency--ap/);
+    expect(css).toMatch(/\.gacha-currency--gold/);
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*th:first-child,[\s\S]*td:first-child[\s\S]*position:\s*sticky[\s\S]*min-width:\s*120px/,
+    );
+    expect(css).toMatch(
+        /@media \(max-width: 879px\)[\s\S]*\.Source_column[\s\S]*min-width:\s*220px/,
+    );
 });
 
 test("presents a task-first finder workspace", async () => {

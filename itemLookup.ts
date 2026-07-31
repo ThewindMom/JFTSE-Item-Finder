@@ -56,6 +56,43 @@ export class GachaItemSource extends ItemSource {
     }
 }
 
+export type GachaEconomics =
+    | {
+        availability: "unavailable";
+        chancePercent: number;
+        expectedPulls: number;
+    }
+    | {
+        availability: "direct";
+        chancePercent: number;
+        currency: "AP" | "Gold";
+        expectedPulls: number;
+        expectedSpend: number;
+        pricePerPull: number;
+    };
+
+export function projectGachaEconomics(
+    expectedPulls: number,
+    source?: { price: number; ap: boolean },
+): GachaEconomics {
+    const chancePercent = expectedPulls > 0 ? 100 / expectedPulls : 0;
+    if (!source) {
+        return {
+            availability: "unavailable",
+            chancePercent,
+            expectedPulls,
+        };
+    }
+    return {
+        availability: "direct",
+        chancePercent,
+        currency: source.ap ? "AP" : "Gold",
+        expectedPulls,
+        expectedSpend: expectedPulls * source.price,
+        pricePerPull: source.price,
+    };
+}
+
 export class GuardianItemSource extends ItemSource {
     constructor(
         readonly guardian_map: string,
@@ -200,11 +237,18 @@ type ItemArtSheet = {
     space: number;
     width: number;
 };
+type LotteryArtEntry = {
+    sheet: string;
+    cell: number;
+    color: string;
+    shape: "coin" | "cube" | "token";
+};
 type ItemArtMap = {
     items: Record<string, ItemArtEntry>;
+    lotteries: Record<string, LotteryArtEntry>;
     sheets: Record<string, ItemArtSheet>;
 };
-let itemArtMap: ItemArtMap = { items: {}, sheets: {} };
+let itemArtMap: ItemArtMap = { items: {}, lotteries: {}, sheets: {} };
 
 function prettyNumber(n: number, digits: number) {
     let s = n.toFixed(digits);
@@ -734,6 +778,7 @@ export async function downloadItems() {
 function deletableItem(name: string, id: number) {
     return createHTML([
         "div",
+        { class: "item-identity" },
         createHTML([
             "button",
             {
@@ -744,7 +789,7 @@ function deletableItem(name: string, id: number) {
             },
             "Exclude",
         ]),
-        name,
+        ["span", { class: "item-identity__name" }, name],
     ]);
 }
 
@@ -831,7 +876,8 @@ function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, 
         [
             "tr",
             ["th", "Item"],
-            ["th", "Average Tries"],
+            ["th", "Chance"],
+            ["th", "Expected pulls"],
         ],
     ]) : createHTML([
         "table",
@@ -839,7 +885,8 @@ function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, 
             "tr",
             ["th", "Item"],
             ["th", "Character"],
-            ["th", "Average Tries"],
+            ["th", "Chance"],
+            ["th", "Expected pulls"],
         ],
     ]);
     const gacha = gachas.get(itemSource.shop_id);
@@ -868,6 +915,7 @@ function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, 
                 "tr",
                 item === char_gacha_item ? { class: "highlighted" } : "",
                 ["td", char_gacha_item.name_en, quantityString(quantity_min, quantity_max)],
+                ["td", { class: "numeric" }, `${prettyNumber(probability * 100, 2)}%`],
                 ["td", { class: "numeric" }, `${prettyNumber(1 / probability, 2)}`],
             ]));
         }
@@ -877,6 +925,7 @@ function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, 
                 item === char_gacha_item ? { class: "highlighted" } : "",
                 ["td", char_gacha_item.name_en, quantityString(quantity_min, quantity_max)],
                 ["td", char_gacha_item.character || "*"],
+                ["td", { class: "numeric" }, `${prettyNumber(probability * 100, 2)}%`],
                 ["td", { class: "numeric" }, `${prettyNumber(1 / probability, 2)}`],
             ]));
         }
@@ -961,18 +1010,114 @@ function makeSourcesList(list: (HTMLElement | string)[][]): (HTMLElement | strin
     return result;
 }
 
+function formatPlayerNumber(value: number) {
+    return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
+function createCurrencyChip(currency: "AP" | "Gold") {
+    return createHTML([
+        "span",
+        {
+            class: `gacha-currency gacha-currency--${currency.toLowerCase()}`,
+            "data-currency": currency,
+        },
+        currency,
+    ]);
+}
+
+function createGachaSourceSummary(
+    item: Item,
+    itemSource: GachaItemSource,
+    sourceFilter: (itemSource: ItemSource) => boolean,
+    character?: Character,
+) {
+    const gacha = gachas.get(itemSource.shop_id);
+    if (!gacha) {
+        throw "Internal error";
+    }
+    const art = itemArtMap.lotteries[`${gacha.gacha_index}`];
+    const expectedPulls = itemSource.gachaTries(item, character);
+    const directSource = itemSource.item.sources.find(
+        (source): source is ShopItemSource => source instanceof ShopItemSource,
+    );
+    const economics = projectGachaEconomics(expectedPulls, directSource);
+    const alternativeSources = itemSourcesToElementArray(
+        itemSource.item,
+        source => source !== directSource && sourceFilter(source),
+        itemSource.requiresGuardian ? undefined : character,
+    );
+    const alternativeList = makeSourcesList(alternativeSources);
+    const purchase = economics.availability === "direct"
+        ? createHTML([
+            "div",
+            { class: "gacha-purchase" },
+            createCurrencyChip(economics.currency),
+            ["span", `${formatPlayerNumber(economics.pricePerPull)} per pull`],
+            [
+                "span",
+                { class: "gacha-expected-spend" },
+                `Expected spend ~${formatPlayerNumber(economics.expectedSpend)} ${economics.currency}`,
+            ],
+        ])
+        : createHTML([
+            "span",
+            { class: "gacha-purchase gacha-purchase--unavailable" },
+            "Not directly purchasable",
+        ]);
+
+    return createHTML([
+        "div",
+        {
+            class: "gacha-source-summary",
+            role: "group",
+            "aria-label": `${gacha.name} acquisition`,
+        },
+        createGachaCoinArt(gacha),
+        [
+            "div",
+            { class: "gacha-source-summary__content" },
+            [
+                "div",
+                { class: "gacha-identity" },
+                createGachaSourcePopup(
+                    item,
+                    itemSource,
+                    itemSource.requiresGuardian ? undefined : character,
+                ),
+                [
+                    "span",
+                    { class: "gacha-coin-color" },
+                    art ? `${art.color} ${art.shape}` : "Coin color unavailable",
+                ],
+            ],
+            [
+                "div",
+                { class: "gacha-metrics" },
+                [
+                    "dl",
+                    { class: "gacha-economics" },
+                    ["div", ["dt", "Chance"], ["dd", `${formatPlayerNumber(economics.chancePercent)}%`]],
+                    ["div", ["dt", "Expected pulls"], ["dd", `~${formatPlayerNumber(economics.expectedPulls)}`]],
+                ],
+                purchase,
+            ],
+            ...(alternativeList.length > 0
+                ? [createHTML([
+                "div",
+                { class: "gacha-alternatives" },
+                ["span", { class: "gacha-alternatives__label" }, "Alternative"],
+                ...alternativeList,
+            ])]
+                : []),
+        ],
+    ]);
+}
+
 function sourceItemElement(item: Item, itemSource: ItemSource, sourceFilter: (itemSource: ItemSource) => boolean, character?: Character): (HTMLElement | string)[] {
     if (itemSource instanceof GachaItemSource) {
-        const char = itemSource.requiresGuardian ? undefined : character;
-        const sources = itemSourcesToElementArray(itemSource.item, sourceFilter, character);
-        const sourcesList = makeSourcesList(sources);
-        return [
-            createGachaSourcePopup(item, itemSource, char),
-            ` x `,
-            createChancePopup(itemSource.gachaTries(item, character)),
-            ...(sourcesList.length > 0 ? [" "] : []),
-            ...sourcesList,
-        ];
+        return [createGachaSourceSummary(item, itemSource, sourceFilter, character)];
     }
     else if (itemSource instanceof ShopItemSource) {
         if (itemSource.items.length === 1) {
@@ -1004,15 +1149,10 @@ function createItemArtFallback(item: Item) {
     ]);
 }
 
-function createItemArt(item: Item) {
-    const art = itemArtMap.items[`${item.id}`];
-    if (!art) {
-        return createItemArtFallback(item);
-    }
-    const [sheet, cell] = art;
+function createSpriteArt(sheet: string, cell: number, label: string, className: string) {
     const geometry = itemArtMap.sheets[sheet];
     if (!geometry) {
-        return createItemArtFallback(item);
+        return;
     }
     const column = cell % geometry.lineCount;
     const row = Math.floor(cell / geometry.lineCount);
@@ -1023,9 +1163,9 @@ function createItemArt(item: Item) {
     return createHTML([
         "span",
         {
-            class: "item-art-thumbnail",
+            class: className,
             role: "img",
-            "aria-label": `Official item art for ${item.name_en}`,
+            "aria-label": label,
             style: [
                 `--item-art-image:url("/assets/item-art/${encodeURIComponent(sheet)}.webp")`,
                 `--item-art-size:${imageSize}px`,
@@ -1034,6 +1174,41 @@ function createItemArt(item: Item) {
             ].join(";"),
         },
     ]);
+}
+
+function createItemArt(item: Item) {
+    const art = itemArtMap.items[`${item.id}`];
+    if (!art) {
+        return createItemArtFallback(item);
+    }
+    return createSpriteArt(
+        art[0],
+        art[1],
+        `Official item art for ${item.name_en}`,
+        "item-art-thumbnail",
+    ) ?? createItemArtFallback(item);
+}
+
+function createGachaCoinArt(gacha: Gacha) {
+    const art = itemArtMap.lotteries[`${gacha.gacha_index}`];
+    const fallback = () => createHTML([
+            "span",
+            {
+                class: "gacha-coin-art gacha-coin-art--unavailable",
+                role: "img",
+                "aria-label": `Coin artwork unavailable for ${gacha.name}`,
+            },
+            "?",
+        ]);
+    if (!art) {
+        return fallback();
+    }
+    return createSpriteArt(
+        art.sheet,
+        art.cell,
+        `${art.color} ${art.shape} for ${gacha.name}`,
+        "gacha-coin-art",
+    ) ?? fallback();
 }
 
 function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => boolean, priorityStats: string[], character?: Character): HTMLTableRowElement {

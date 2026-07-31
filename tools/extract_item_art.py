@@ -14,6 +14,30 @@ from PIL import Image
 
 
 AES_KEY_HEX = "54494d4f5445495f5a494f4e00000000"
+ROUND_COIN_COLORS = (
+    "Red",
+    "Orange",
+    "Yellow",
+    "Green",
+    "Blue",
+    "Indigo",
+    "Purple",
+    "White",
+    "Silver",
+    "Black",
+    "Pink",
+    "Mint",
+    "Burgundy-gold",
+    "Cyan",
+    "Magenta",
+    "Cream",
+    "Lime",
+    "Olive",
+    "Violet",
+    "Emerald",
+    "Rainbow",
+)
+CUBE_COLORS = ROUND_COIN_COLORS[:10]
 
 
 def decrypt_set(archive: zipfile.ZipFile, entry: str) -> bytes:
@@ -64,7 +88,7 @@ def decode_texture(texture: bytes, width: int) -> Image.Image:
 
 def build_sheet_index(gui_root: Path, wanted: set[str]) -> dict[str, tuple[Path, str]]:
     found: dict[str, tuple[Path, str]] = {}
-    for archive_path in sorted(gui_root.glob("Item*.res")):
+    for archive_path in sorted(gui_root.rglob("*.res")):
         with zipfile.ZipFile(archive_path) as archive:
             for entry in archive.namelist():
                 stem = Path(entry).stem
@@ -76,6 +100,31 @@ def build_sheet_index(gui_root: Path, wanted: set[str]) -> dict[str, tuple[Path,
     return found
 
 
+def lottery_art(icon: str) -> dict[str, str | int]:
+    sheet, cell_text = icon.rsplit("_", 1)
+    cell = int(cell_text)
+    if sheet == "Item_GatchaCoin00":
+        return {
+            "sheet": sheet,
+            "cell": cell,
+            "color": ROUND_COIN_COLORS[cell],
+            "shape": "coin",
+        }
+    if sheet == "Item_GatchaCoin01":
+        return {
+            "sheet": sheet,
+            "cell": cell,
+            "color": CUBE_COLORS[cell],
+            "shape": "cube",
+        }
+    return {
+        "sheet": sheet,
+        "cell": cell,
+        "color": "Special",
+        "shape": "token",
+    }
+
+
 def extract_item_art(client_root: Path, output_root: Path) -> None:
     script_archive_path = client_root / "Res" / "Script" / "Item.res"
     with zipfile.ZipFile(script_archive_path) as script_archive:
@@ -84,6 +133,12 @@ def extract_item_art(client_root: Path, output_root: Path) -> None:
         )
         item_root = ElementTree.fromstring(
             decrypt_set(script_archive, "Item_Parts.set").decode("utf-8")
+        )
+    with zipfile.ZipFile(
+        client_root / "Res" / "Script" / "PubItem" / "Ini3.res"
+    ) as lottery_archive:
+        lottery_root = ElementTree.fromstring(
+            decrypt_set(lottery_archive, "Item_Lottery_Ini3.set").decode("utf-8")
         )
 
     sheets = {
@@ -101,6 +156,15 @@ def extract_item_art(client_root: Path, output_root: Path) -> None:
         sheet, cell_text = icon.rsplit("_", 1)
         items[element.attrib["Index"]] = [sheet, int(cell_text)]
         used_sheets.add(sheet)
+    lotteries = {
+        element.attrib["Index"]: lottery_art(element.attrib["Icon"])
+        for element in lottery_root
+    }
+    used_sheets.update(
+        descriptor["sheet"]
+        for descriptor in lotteries.values()
+        if isinstance(descriptor["sheet"], str)
+    )
 
     sprite_entries = build_sheet_index(client_root / "Res" / "GuiRes", used_sheets)
     art_root = output_root / "item-art"
@@ -127,6 +191,7 @@ def extract_item_art(client_root: Path, output_root: Path) -> None:
         json.dumps(
             {
                 "items": items,
+                "lotteries": lotteries,
                 "sheets": {sheet: sheets[sheet] for sheet in sorted(used_sheets)},
             },
             separators=(",", ":"),
@@ -134,7 +199,10 @@ def extract_item_art(client_root: Path, output_root: Path) -> None:
         ),
         encoding="utf-8",
     )
-    print(f"Extracted {len(used_sheets)} sprite sheets for {len(items)} items")
+    print(
+        f"Extracted {len(used_sheets)} sprite sheets for "
+        f"{len(items)} items and {len(lotteries)} lotteries"
+    )
 
 
 def main() -> None:
