@@ -1,41 +1,41 @@
 :root {
-    color-scheme: dark;
+    color-scheme: light;
 
-    --jf-bg: hsl(217 48% 7%);
-    --jf-bg-deep: hsl(218 58% 4%);
-    --jf-surface: hsl(220 39% 12%);
-    --jf-surface-raised: hsl(218 37% 15%);
-    --jf-surface-inset: hsl(216 38% 7%);
-    --jf-surface-hover: hsl(214 38% 19%);
-    --jf-surface-glass: hsl(218 46% 9% / 88%);
+    --jf-bg: hsl(194 100% 97%);
+    --jf-bg-deep: hsl(191 100% 91%);
+    --jf-surface: hsl(48 100% 98%);
+    --jf-surface-raised: hsl(191 78% 96%);
+    --jf-surface-inset: hsl(195 64% 92%);
+    --jf-surface-hover: hsl(187 70% 89%);
+    --jf-surface-glass: hsl(48 100% 99% / 94%);
 
-    --jf-text: hsl(0 0% 100%);
-    --jf-text-secondary: hsl(207 24% 78%);
-    --jf-text-muted: hsl(208 16% 62%);
+    --jf-text: hsl(194 55% 25%);
+    --jf-text-secondary: hsl(193 36% 34%);
+    --jf-text-muted: hsl(192 26% 38%);
 
-    --jf-accent: hsl(190 87% 44%);
-    --jf-accent-heading: hsl(190 87% 49%);
-    --jf-accent-strong: hsl(182 81% 56%);
-    --jf-accent-soft: hsl(175 25% 63%);
-    --jf-accent-wash: hsl(190 87% 44% / 12%);
-    --jf-accent-glow: hsl(190 87% 44% / 20%);
-    --jf-world-glow: hsl(190 92% 56% / 28%);
-    --jf-court-line: hsl(190 82% 64% / 8%);
+    --jf-accent: hsl(197 98% 38%);
+    --jf-accent-heading: hsl(197 98% 34%);
+    --jf-accent-strong: hsl(166 43% 40%);
+    --jf-accent-soft: hsl(166 29% 54%);
+    --jf-accent-wash: hsl(197 98% 38% / 11%);
+    --jf-accent-glow: hsl(197 98% 38% / 16%);
+    --jf-world-glow: hsl(190 92% 56% / 24%);
+    --jf-court-line: hsl(197 52% 50% / 8%);
 
-    --jf-border: hsl(175 25% 63% / 28%);
-    --jf-border-subtle: hsl(175 25% 63% / 14%);
-    --jf-border-strong: hsl(190 87% 44%);
-    --jf-focus: hsl(182 81% 61%);
+    --jf-border: hsl(197 38% 42% / 28%);
+    --jf-border-subtle: hsl(197 38% 42% / 16%);
+    --jf-border-strong: hsl(197 98% 38%);
+    --jf-focus: hsl(197 98% 34%);
 
-    --jf-success: hsl(120 67% 37%);
-    --jf-warning: hsl(30 90% 60%);
-    --jf-danger: hsl(0 100% 60%);
-    --jf-currency-gold: hsl(43 90% 70%);
-    --jf-currency-gold-wash: hsl(43 90% 58% / 14%);
-    --jf-currency-ap: hsl(278 78% 78%);
-    --jf-currency-ap-wash: hsl(278 78% 66% / 16%);
-    --jf-text-on-accent: hsl(231 30% 9%);
-    --jf-overlay: hsl(231 40% 4% / 76%);
+    --jf-success: hsl(145 60% 31%);
+    --jf-warning: hsl(28 88% 42%);
+    --jf-danger: hsl(0 72% 44%);
+    --jf-currency-gold: hsl(38 86% 37%);
+    --jf-currency-gold-wash: hsl(43 90% 58% / 16%);
+    --jf-currency-ap: hsl(278 62% 46%);
+    --jf-currency-ap-wash: hsl(278 62% 58% / 14%);
+    --jf-text-on-accent: hsl(194 58% 18%);
+    --jf-overlay: hsl(194 48% 15% / 64%);
 
     --jf-space-1: 4px;
     --jf-space-2: 8px;
@@ -54,15 +54,15 @@
     --jf-radius-pill: 999px;
 
     --jf-shadow-panel:
-        0 1px 0 hsl(0 0% 100% / 4%) inset,
-        0 20px 48px hsl(220 74% 2% / 36%);
-    --jf-shadow-overlay: 0 30px 80px hsl(220 74% 2% / 68%);
+        0 1px 0 hsl(0 0% 100% / 72%) inset,
+        0 20px 48px hsl(197 56% 31% / 14%);
+    --jf-shadow-overlay: 0 30px 80px hsl(205 50% 10% / 28%);
     --jf-shadow-glow:
-        inset 0 0 1px 1px hsl(0 0% 0% / 44%),
-        0 0 10px hsl(175 25% 63% / 22%);
+        inset 0 0 1px 1px hsl(0 0% 100% / 72%),
+        0 0 10px hsl(197 98% 38% / 16%);
 
-    --jf-font-ui: "Barlow Semi Condensed", "Roboto", system-ui, sans-serif;
-    --jf-font-display: "Barlow Condensed", "Roboto", system-ui, sans-serif;
+    --jf-font-ui: "Nunito Sans", system-ui, sans-serif;
+    --jf-font-display: "Fredoka", "Nunito Sans", system-ui, sans-serif;
     --jf-font-data: "IBM Plex Mono", ui-monospace, monospace;
 
     --jf-type-title: 24px;
@@ -93,12 +93,10 @@ body {
     margin: 0;
     overflow-x: hidden;
     background:
-        linear-gradient(var(--jf-court-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--jf-court-line) 1px, transparent 1px),
-        radial-gradient(circle at 82% 0%, var(--jf-world-glow), transparent 32rem),
+        radial-gradient(circle at 82% 0%, var(--jf-world-glow), transparent 34rem),
         linear-gradient(180deg, var(--jf-bg-deep), var(--jf-bg) 32rem);
     background-position: center;
-    background-size: 72px 72px, 72px 72px, auto, auto;
+    background-size: auto, auto;
     color: var(--jf-text);
     font-family: var(--jf-font-ui);
     font-size: var(--jf-type-body);
@@ -166,7 +164,7 @@ summary:focus-visible,
     top: 0;
     min-height: 56px;
     border-bottom: 1px solid var(--jf-border-subtle);
-    background: hsl(218 58% 4% / 88%);
+    background: hsl(48 100% 99% / 92%);
     backdrop-filter: blur(18px) saturate(130%);
 }
 
@@ -263,8 +261,8 @@ summary:focus-visible,
     border: 1px solid var(--jf-border);
     border-radius: var(--jf-radius-xl);
     background:
-        linear-gradient(90deg, hsl(218 58% 4% / 98%) 0%, hsl(218 53% 6% / 91%) 42%, hsl(218 48% 8% / 38%) 74%),
-        url("/assets/fantasy-tennis-island.webp") right center / auto 150% no-repeat,
+        linear-gradient(90deg, hsl(48 100% 98% / 98%) 0%, hsl(48 100% 98% / 94%) 42%, hsl(48 100% 98% / 34%) 68%, transparent 78%),
+        url("/assets/fantasy-tennis-island.webp") right center / 58% auto no-repeat,
         var(--jf-surface);
     box-shadow: var(--jf-shadow-panel);
 }
@@ -273,9 +271,7 @@ summary:focus-visible,
     position: absolute;
     z-index: -1;
     inset: 0;
-    background:
-        linear-gradient(135deg, transparent 52%, var(--jf-court-line) 52.2%, transparent 52.5%),
-        linear-gradient(45deg, transparent 68%, var(--jf-court-line) 68.2%, transparent 68.5%);
+    background: linear-gradient(90deg, transparent 60%, hsl(48 100% 98% / 8%));
     content: "";
     pointer-events: none;
 }
@@ -310,10 +306,9 @@ summary:focus-visible,
     margin: 0;
     color: var(--jf-text);
     font-family: var(--jf-font-display);
-    font-size: clamp(38px, 4vw, 64px);
-    line-height: 0.88;
-    letter-spacing: -0.025em;
-    text-transform: uppercase;
+    font-size: clamp(36px, 3.6vw, 56px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
     text-wrap: balance;
 }
 
@@ -349,7 +344,7 @@ summary:focus-visible,
     padding: var(--jf-space-2) var(--jf-space-3);
     border: 1px solid var(--jf-border-subtle);
     border-radius: var(--jf-radius-md);
-    background: hsl(218 48% 7% / 72%);
+    background: var(--jf-surface-glass);
     backdrop-filter: blur(10px);
 }
 
@@ -569,8 +564,8 @@ input[type="search"] {
         var(--jf-surface-inset);
     color: var(--jf-text);
     box-shadow:
-        inset 0 1px 0 hsl(0 0% 100% / 4%),
-        0 10px 28px hsl(220 74% 2% / 18%);
+        inset 0 1px 0 hsl(0 0% 100% / 72%),
+        0 10px 28px hsl(197 56% 31% / 12%);
     font-size: var(--jf-type-body);
     transition:
         border-color var(--jf-motion-fast),
@@ -925,7 +920,7 @@ ul.layout label {
     border-bottom: 1px solid var(--jf-border-subtle);
     background:
         linear-gradient(90deg, var(--jf-accent-wash), transparent 48%),
-        hsl(218 37% 13% / 94%);
+        var(--jf-surface-raised);
 }
 
 .results-panel__header h2 {
@@ -1062,7 +1057,7 @@ td {
     padding: 0 var(--jf-space-3);
     border-right: 1px solid var(--jf-border-subtle);
     border-bottom: 1px solid var(--jf-border-subtle);
-    background: hsl(220 39% 12% / 96%);
+    background: var(--jf-surface);
     vertical-align: middle;
 }
 
@@ -1071,7 +1066,7 @@ th {
     z-index: 4;
     top: 0;
     height: 36px;
-    background: hsl(216 48% 6% / 98%);
+    background: var(--jf-surface-inset);
     color: var(--jf-text-secondary);
     font-size: var(--jf-type-caption);
     font-weight: 700;
@@ -1081,7 +1076,7 @@ th {
 }
 
 tr:nth-child(even) td {
-    background: hsl(218 37% 15% / 92%);
+    background: var(--jf-surface-raised);
 }
 
 tbody tr:hover td,
@@ -1421,8 +1416,8 @@ td.total {
     background-repeat: no-repeat;
     background-size: var(--item-art-size) var(--item-art-size);
     box-shadow:
-        0 0 0 4px hsl(218 48% 7% / 70%),
-        0 12px 28px hsl(220 74% 2% / 40%);
+        0 0 0 4px hsl(48 100% 98% / 82%),
+        0 12px 28px hsl(197 56% 31% / 18%);
 }
 
 .item-details__eyebrow {
@@ -1704,7 +1699,7 @@ dialog button {
         min-block-size: 44px;
         padding-inline: var(--jf-space-3);
         border-radius: var(--jf-radius-md);
-        background: hsl(218 48% 7% / 78%);
+        background: var(--jf-surface-glass);
         backdrop-filter: blur(12px);
     }
 
@@ -1816,6 +1811,10 @@ dialog button {
         max-width: 132px;
     }
 
+    .table-scroll-hint {
+        display: none;
+    }
+
     .loading-state {
         padding: var(--jf-space-5) var(--jf-space-4);
     }
@@ -1881,6 +1880,156 @@ dialog button {
     .Source_column {
         min-width: 220px;
         max-width: 220px;
+    }
+
+    .table-scroll {
+        overflow-x: visible;
+    }
+
+    #results table,
+    #results tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    #results thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    #results tbody {
+        display: grid;
+        gap: var(--jf-space-3);
+        padding: var(--jf-space-3);
+    }
+
+    .result-row {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-areas:
+            "art summary summary summary summary summary"
+            "character character part part level level";
+        gap: var(--jf-space-2);
+        width: 100%;
+        min-width: 0;
+        padding: var(--jf-space-3);
+        border: 1px solid var(--jf-border);
+        border-radius: var(--jf-radius-lg);
+        background: var(--jf-surface);
+        box-shadow: 0 8px 24px hsl(197 56% 31% / 10%);
+    }
+
+    .result-row > td {
+        position: static;
+        display: flex;
+        min-width: 0;
+        max-width: none;
+        height: auto;
+        min-height: 44px;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--jf-space-2);
+        padding: var(--jf-space-2) var(--jf-space-3);
+        overflow: visible;
+        border: 0;
+        border-radius: var(--jf-radius-md);
+        background: var(--jf-surface-raised);
+        white-space: normal;
+    }
+
+    .result-row > td[hidden] {
+        display: none;
+    }
+
+    .result-row > td::before {
+        flex: 0 0 auto;
+        color: var(--jf-text-muted);
+        content: attr(data-label);
+        font-family: var(--jf-font-ui);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .result-summary {
+        grid-area: summary;
+        background: transparent;
+    }
+
+    .result-summary::before,
+    .result-row > .Art_column::before {
+        display: none;
+    }
+
+    .result-row > .Art_column {
+        grid-area: art;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        background: transparent;
+    }
+
+    .result-row > .Character_column {
+        grid-area: character;
+    }
+
+    .result-row > .Part_column {
+        grid-area: part;
+    }
+
+    .result-row > .Level_column {
+        grid-area: level;
+    }
+
+    .result-row > .Character_column,
+    .result-row > .Part_column,
+    .result-row > .Level_column {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .result-row > .numeric:not(.Level_column) {
+        grid-column: span 2;
+    }
+
+    .result-row > .numeric[data-value="0"] {
+        display: none;
+    }
+
+    .result-row > .Source_column {
+        grid-column: 1 / -1;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .result-row .item-identity {
+        width: 100%;
+        grid-template-columns: 44px minmax(0, 1fr);
+    }
+
+    .result-row .item-details-trigger {
+        overflow: visible;
+        color: var(--jf-text);
+        font-family: var(--jf-font-display);
+        font-size: 17px;
+        font-weight: 600;
+        text-align: start;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    #results tfoot {
+        display: none;
     }
 
     .gacha-source-summary {

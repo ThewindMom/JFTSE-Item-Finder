@@ -171,7 +171,7 @@ test("opens item details with acquisition context", async () => {
     );
 });
 
-test("presents the Night Court equipment lab", async () => {
+test("presents the bright FantasyLand equipment lab", async () => {
     const [html, css] = await Promise.all([
         projectFile("./index.html"),
         projectFile("./style.css"),
@@ -184,7 +184,10 @@ test("presents the Night Court equipment lab", async () => {
     expect(html).toContain(">Compare<");
     expect(html).toContain(">Acquire<");
     expect(html).toContain('class="authentic-data-cue"');
-    expect(css).toContain("--jf-court-line:");
+    expect(css).toContain("color-scheme: light");
+    expect(css).toContain('--jf-font-ui: "Nunito Sans"');
+    expect(css).toContain('--jf-font-display: "Fredoka"');
+    expect(css).toContain("--jf-bg: hsl(194 100% 97%)");
     expect(css).toContain("--jf-world-glow:");
     expect(css).toMatch(
         /\.world-stage[\s\S]*url\("\/assets\/fantasy-tennis-island\.webp"\)/,
@@ -193,7 +196,7 @@ test("presents the Night Court equipment lab", async () => {
     expect(css).toMatch(/\.results-panel[\s\S]*isolation:\s*isolate/);
 });
 
-test("keeps the premium finder task-first on mobile", async () => {
+test("keeps the FantasyLand finder task-first on mobile", async () => {
     const [html, css] = await Promise.all([
         projectFile("./index.html"),
         projectFile("./style.css"),
@@ -211,9 +214,8 @@ test("keeps the premium finder task-first on mobile", async () => {
     expect(css).toMatch(
         /@media \(max-width: 879px\)[\s\S]*\.control-rail[\s\S]*backdrop-filter:\s*blur\(20px\)/,
     );
-    expect(css).toMatch(
-        /\.table-scroll[\s\S]*overscroll-behavior-inline:\s*contain/,
-    );
+    expect(css).toMatch(/\.result-row\s*\{[\s\S]*display:\s*grid/);
+    expect(css).toMatch(/\.result-row\s*>\s*\.Source_column[\s\S]*grid-column:\s*1\s*\/\s*-1/);
     expect(css).toMatch(
         /@media \(max-width: 879px\)[\s\S]*\.item-details-dialog[\s\S]*border-radius:\s*18px/,
     );

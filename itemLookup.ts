@@ -1339,14 +1339,17 @@ function createGachaCoinArt(gacha: Gacha) {
 
 function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => boolean, priorityStats: string[], character?: Character): HTMLTableRowElement {
     const row = createHTML(
-        ["tr",
-            ["td", { class: "Name_column" }, deletableItem(item, character)],
-            ["td", { class: "Art_column" }, createItemArt(item)],
-            ["td", { class: "Character_column" }, item.character ?? "All"],
-            ["td", { class: "Part_column" }, item.part],
-            ...priorityStats.map(stat => createHTML(["td", { class: "numeric" }, stat.split("+").map(s => item.statFromString(s)).join("+")])),
-            ["td", { class: "Level_column numeric" }, `${item.level}`],
-            ["td", { class: "Source_column" }, ...makeSourcesList(itemSourcesToElementArray(item, sourceFilter, character))],
+        ["tr", { class: "result-row" },
+            ["td", { class: "Name_column result-summary", "data-label": "Item" }, deletableItem(item, character)],
+            ["td", { class: "Art_column", "data-label": "Art" }, createItemArt(item)],
+            ["td", { class: "Character_column", "data-label": "Character" }, item.character ?? "All"],
+            ["td", { class: "Part_column", "data-label": "Part" }, item.part],
+            ...priorityStats.map(stat => {
+                const value = stat.split("+").map(s => item.statFromString(s)).join("+");
+                return createHTML(["td", { class: "numeric", "data-label": stat, "data-value": value }, value]);
+            }),
+            ["td", { class: "Level_column numeric", "data-label": "Level", "data-value": `${item.level}` }, `${item.level}`],
+            ["td", { class: "Source_column", "data-label": "Source" }, ...makeSourcesList(itemSourcesToElementArray(item, sourceFilter, character))],
         ]
     );
     return row;
