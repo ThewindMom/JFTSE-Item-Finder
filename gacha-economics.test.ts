@@ -73,7 +73,7 @@ test("keeps unavailable gacha pricing honest", async () => {
     const renderer = await Bun.file(
         new URL("./itemLookup.ts", import.meta.url),
     ).text();
-    expect(renderer).toContain("Not directly purchasable");
     expect(renderer).toContain('class: "gacha-alternatives"');
     expect(renderer).toContain("source !== directSource && sourceFilter(source)");
+    expect(renderer).not.toContain('class: "gacha-metrics"');
 });

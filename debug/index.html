@@ -41,13 +41,6 @@
             <p class="world-stage__headline">Find your perfect build</p>
             <p class="world-stage__description">Search the complete item index, compare the stats that matter,
                 and know the real acquisition cost before you spend.</p>
-            <ol class="player-journey" aria-label="Find, compare, and acquire equipment">
-                <li><span aria-hidden="true">01</span><strong>Find</strong><small>Search every item</small></li>
-                <li><span aria-hidden="true">02</span><strong>Compare</strong><small>Rank real stats</small></li>
-                <li><span aria-hidden="true">03</span><strong>Acquire</strong><small>Plan AP or Gold</small></li>
-            </ol>
-            <p class="authentic-data-cue">Authentic client artwork <span aria-hidden="true">·</span> Live server
-                data</p>
         </div>
         <button class="filter-toggle" id="filterToggle" type="button" aria-controls="controlRail"
             aria-expanded="false">
@@ -61,7 +54,7 @@
         <section class="panel results-panel" id="results_group" aria-labelledby="results-title">
             <div class="results-panel__header">
                 <div>
-                    <p class="panel-kicker">Best matches</p>
+                    <p class="panel-kicker">Matching items</p>
                     <h2 id="results-title">Equipment results</h2>
                 </div>
                 <div class="results-panel__meta">
@@ -119,6 +112,14 @@
                     <div id="characterFilters" class="choice-list"></div>
                 </div>
 
+                <div class="filter-section exclusion-section">
+                    <h2>Excluded items</h2>
+                    <p class="section-hint">Excluded rows stay listed here so you can restore them.</p>
+                    <div id="itemFilter" aria-live="polite">
+                        <p class="empty-note">No excluded items</p>
+                    </div>
+                </div>
+
                 <details class="advanced-filters">
                     <summary>More filters <span>Type, slots, and availability</span></summary>
                     <div class="disclosure-content">
@@ -129,10 +130,6 @@
                                 <label for="partsSelector">Equipment</label>
                                 <input id="gachaSelector" type="radio" name="itemTypeSelector">
                                 <label for="gachaSelector">Gacha</label>
-                                <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled"
-                                    disabled aria-disabled="true">
-                                <label for="otherItemsSelector" class="disabled">Other items <span>(coming
-                                        soon)</span></label>
                             </div>
                         </div>
 
@@ -146,14 +143,7 @@
                             <div id="availabilityFilter"></div>
                         </div>
 
-                        <div class="filter-section exclusion-section">
-                            <h2>Excluded items</h2>
-                            <p class="section-hint">Remove an item to compare alternatives.</p>
-                            <div id="itemFilter" aria-live="polite">
-                                <p class="empty-note">No excluded items</p>
                             </div>
-                        </div>
-                    </div>
                 </details>
             </fieldset>
 

@@ -3,32 +3,35 @@
 ## Product direction
 
 The finder is an Operate-mode comparison utility, not a marketing landing page or a dashboard.
-It borrows the live JFTSE site's dark indigo surfaces, cyan signal color, condensed type, and
-restrained glow while putting the player's actual task first: narrow the equipment pool, then
-compare the best matches.
+It presents a bright FantasyLand equipment lab: light court surfaces, cyan signal color, rounded
+type, and restrained glow, while putting the player's actual task first: narrow the equipment
+pool, then compare the full ranked inventory.
 
-- Dark utility shell with compact, readable controls.
+- Light utility shell with compact, readable controls.
 - Task-first hierarchy: refinement rail, then dominant result canvas.
-- Search, level, enchantment, and character are always available.
+- Search, level, enchantment, character, and exclusions are always available.
 - Advanced filters and stat ranking use named native disclosures.
 - Semantic comparison table on every viewport.
 - Authentic JFTSE/Fantasy Tennis artwork only when a reliable mapping exists.
 - Honest named fallback tiles when official item art is unavailable.
 - No marketing hero, gradient mesh, particles, fabricated logos, or AI-generated production imagery.
+- No player-journey stepper and no authenticity badge or cue chrome.
 
-## Night Court Equipment Lab
+## FantasyLand Equipment Lab
 
-The premium direction is a **Night Court Equipment Lab**: a quiet, cinematic match desk
-where players find gear, compare real numbers, and understand acquisition costs before
-spending AP or Gold. It evolves the utility rather than replacing it.
+The premium direction is a **FantasyLand Equipment Lab**: a bright match desk where players
+find gear, compare real numbers across every eligible candidate, and inspect acquisition
+sources before spending AP or Gold. It evolves the utility rather than replacing it.
 
 - The restrained world-stage establishes Fantasy Tennis immediately, then yields to the task.
-- The visible player journey is `Find` → `Compare` → `Acquire`.
 - The refinement rail remains compact and secondary to the comparison canvas.
 - The semantic table remains the canonical comparison surface on every viewport.
+- Results keep the complete eligible ranked inventory; ranking never collapses to winner-only
+  best or tie subsets.
 - Authentic item and gacha sprites are the emotional focal points; interface chrome stays calm.
-- Cyan means action, focus, or active state. Gold and AP retain explicit written labels.
-- Premium quality comes from hierarchy, typography, spacing, texture, and state feedback—not
+- Cyan means action, focus, or active state. Gold and AP retain explicit written labels where
+  currency appears.
+- Premium quality comes from hierarchy, typography, spacing, texture, and state feedback, not
   from continuous effects or decorative feature invention.
 
 ### Authentic world visual provenance
@@ -47,8 +50,8 @@ or override the authentic client sprites and server data.
 
 ### Spatial model
 
-- Desktop: 56px app bar, restrained world-stage, sticky 18–20rem refinement rail, dominant
-  comparison canvas, and centered item dossier.
+- Desktop: 56px app bar, restrained world-stage, sticky 18 to 20rem refinement rail, dominant
+  comparison canvas, and wide item dossier.
 - Mobile: 48px app bar, compact world-stage, results-first source order, complete modal
   refinement drawer, sticky item identity, table-contained horizontal scrolling, and a
   near-full-height item dossier.
@@ -61,30 +64,43 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 
 ```css
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --jf-bg: hsl(231 30% 9%);
-  --jf-surface: hsl(248 26% 17%);
-  --jf-surface-raised: hsl(231 29% 14%);
-  --jf-surface-inset: hsl(0 0% 10%);
+  --jf-bg: hsl(194 100% 97%);
+  --jf-bg-deep: hsl(191 100% 91%);
+  --jf-surface: hsl(48 100% 98%);
+  --jf-surface-raised: hsl(191 78% 96%);
+  --jf-surface-inset: hsl(195 64% 92%);
+  --jf-surface-hover: hsl(187 70% 89%);
+  --jf-surface-glass: hsl(48 100% 99% / 94%);
 
-  --jf-text: hsl(0 0% 100%);
-  --jf-text-secondary: hsl(46 19% 73%);
-  --jf-text-muted: hsl(46 19% 78%);
+  --jf-text: hsl(194 55% 25%);
+  --jf-text-secondary: hsl(193 36% 34%);
+  --jf-text-muted: hsl(192 26% 38%);
 
-  --jf-accent: hsl(190 87% 44%);
-  --jf-accent-heading: hsl(190 87% 49%);
-  --jf-accent-strong: hsl(182 81% 56%);
-  --jf-accent-soft: hsl(175 25% 63%);
+  --jf-accent: hsl(197 98% 38%);
+  --jf-accent-heading: hsl(197 98% 34%);
+  --jf-accent-strong: hsl(166 43% 40%);
+  --jf-accent-soft: hsl(166 29% 54%);
+  --jf-accent-wash: hsl(197 98% 38% / 11%);
+  --jf-accent-glow: hsl(197 98% 38% / 16%);
+  --jf-world-glow: hsl(190 92% 56% / 24%);
+  --jf-court-line: hsl(197 52% 50% / 8%);
 
-  --jf-border: hsl(175 25% 63% / 28%);
-  --jf-border-strong: hsl(190 87% 44%);
-  --jf-focus: hsl(182 81% 61%);
+  --jf-border: hsl(197 38% 42% / 28%);
+  --jf-border-subtle: hsl(197 38% 42% / 16%);
+  --jf-border-strong: hsl(197 98% 38%);
+  --jf-focus: hsl(197 98% 34%);
 
-  --jf-success: hsl(120 67% 37%);
-  --jf-warning: hsl(30 90% 60%);
-  --jf-danger: hsl(0 100% 60%);
-  --jf-text-on-accent: hsl(231 30% 9%);
+  --jf-success: hsl(145 60% 31%);
+  --jf-warning: hsl(28 88% 42%);
+  --jf-danger: hsl(0 72% 44%);
+  --jf-currency-gold: hsl(38 86% 37%);
+  --jf-currency-gold-wash: hsl(43 90% 58% / 16%);
+  --jf-currency-ap: hsl(278 62% 46%);
+  --jf-currency-ap-wash: hsl(278 62% 58% / 14%);
+  --jf-text-on-accent: hsl(194 58% 18%);
+  --jf-overlay: hsl(194 48% 15% / 64%);
 
   --jf-space-1: 4px;
   --jf-space-2: 8px;
@@ -99,15 +115,19 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
   --jf-radius-sm: 4px;
   --jf-radius-md: 8px;
   --jf-radius-lg: 12px;
+  --jf-radius-xl: 18px;
+  --jf-radius-pill: 999px;
 
-  --jf-shadow-panel: 0 4px 8px rgb(0 0 0 / 30%);
-  --jf-shadow-overlay: 0 18px 44px rgb(0 0 0 / 50%);
+  --jf-shadow-panel:
+    0 1px 0 hsl(0 0% 100% / 72%) inset,
+    0 20px 48px hsl(197 56% 31% / 14%);
+  --jf-shadow-overlay: 0 30px 80px hsl(205 50% 10% / 28%);
   --jf-shadow-glow:
-    inset 0 0 1px 1px rgb(0 0 0 / 44%),
-    0 0 10px hsl(175 25% 63% / 22%);
+    inset 0 0 1px 1px hsl(0 0% 100% / 72%),
+    0 0 10px hsl(197 98% 38% / 16%);
 
-  --jf-font-ui: "Barlow Semi Condensed", "Roboto", system-ui, sans-serif;
-  --jf-font-display: "Barlow Condensed", "Roboto", system-ui, sans-serif;
+  --jf-font-ui: "Nunito Sans", system-ui, sans-serif;
+  --jf-font-display: "Fredoka", "Nunito Sans", system-ui, sans-serif;
   --jf-font-data: "IBM Plex Mono", ui-monospace, monospace;
 
   --jf-type-title: 24px;
@@ -128,7 +148,7 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 - Page title: display font, 24px, weight 700, uppercase, cyan.
 - Panel heading: 16px, weight 600, uppercase, `0.04em` tracking.
 - Label: 13px, weight 600.
-- Caption: 12px, weight 500, muted beige.
+- Caption: 12px, weight 500, muted secondary text.
 - Table number: data font, 13px, tabular numerals.
 - No oversized marketing typography.
 
@@ -162,14 +182,14 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 
 ### App bar
 
-- One `<header>` containing text fallback `JFTSE // ITEM FINDER`.
+- One `<header>` containing the JFTSE brand lockup and text title path to the finder.
 - Include compact links to the JFTSE home page, account registration, and downloads.
 - Use an authentic wordmark only when an approved asset exists.
 
 ### Panels
 
 - Use labelled semantic regions or fieldsets.
-- Surface, border, 8px radius, 16px padding, and panel shadow come from tokens.
+- Surface, border, radius, padding, and panel shadow come from tokens.
 - Loading, disabled, and error states must remain visible and named.
 - Disabled controls use the real `disabled` attribute or `aria-disabled`.
 
@@ -181,21 +201,26 @@ Immediate controls:
 2. Maximum level slider with visible output.
 3. Post-enchantment toggle.
 4. Character radios.
+5. Excluded items (top-level section, always visible before advanced filters).
 
 The `More filters` native disclosure contains:
 
 1. Item type radios.
 2. Parts checkbox tree.
 3. Availability checkbox tree.
-4. Excluded items.
+
+Exclusions must not live inside the collapsed advanced disclosure. The excluded-items section
+stays above `More filters` so restore remains obvious. Each excluded row shows the item name and
+a `Restore` button labelled `Restore {item name}` for assistive tech. Empty exclusions read
+`No excluded items`. Exclusion IDs persist across reload with the other filter state and rehydrate
+before the first results pass.
 
 The rail exposes a visible `Reset filters` action and an `Updates instantly` status. Reset clears
 persisted filter state and restores the documented defaults. Live updates remain the only apply
 model; never add an Apply button that implies stale results.
 
-Every control has a visible label. The slider label reads `Max level requirement: 100`. “Other
-items” is disabled and not focusable. Parent checkboxes expose mixed state. Empty exclusions read
-`No excluded items`; removal buttons are labelled `Remove {item name} from exclusions`.
+Every control has a visible label. The slider label reads `Max level requirement: 100`. The item
+mode switch exposes `Equipment` and `Gacha` only. Parent checkboxes expose mixed state.
 
 ### Sort priority
 
@@ -211,6 +236,10 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 - Results are the visual anchor: wider, higher contrast, and first in mobile DOM reading order
   after the compact page heading.
 - Use `<table>`, `<caption>`, `<thead>`, `<tbody>`, and `<tfoot>` where data permits.
+- Caption reads `Matching equipment by slot and selected stat priority`.
+- Body rows show the complete eligible inventory for each equipment slot, ordered by the active
+  stat priorities. Ranking retains every filtered candidate, including lower ranks and exact ties.
+  Never collapse the body to winner-only best items or tie subsets.
 - Columns: Item, Art, Character, Part, priority statistics, Level, Source.
 - Header: 36px desktop and 44px mobile. Rows: 40px desktop and 44px mobile.
 - Name minimum width: 180px. Numeric cells are right aligned, monospace, and nowrap.
@@ -221,32 +250,41 @@ items” is disabled and not focusable. Parent checkboxes expose mixed state. Em
 - Result count is announced politely.
 - Loading and error copy appears inline in this panel; never use an alert dialog for network errors.
 
+#### Single-character footer totals
+
+When exactly one character is represented in the result set, render a `<tfoot>` total row:
+
+- Stat and level totals use the best candidate per equipment slot (`result[0]` after ranking).
+- Source / cost totals aggregate acquisition cost for that same best-per-slot set only.
+- Body rows still list every eligible ranked candidate above the footer.
+- Do not sum cost across the full catalog of lower-ranked alternatives in the footer.
+
 ### Source details
 
 - Action controls are real buttons with `aria-haspopup="dialog"`.
 - Details open in a labelled native `<dialog>`, dismiss with Escape or Close, and restore focus.
+- Generic dialogs and item-details dialogs share one responsive width:
+  `width: min(92vw, 1280px)`.
 - Gold, AP, gacha, and Guardian sources always retain text labels.
 
 ### Gacha acquisition summaries
 
-The source cell answers the player's decisions in this order:
+The source cell identifies the acquisition path without shop economics chrome:
 
-1. **Which coin?** Authentic extracted coin art, exact coin name, and a textual color/shape label.
-2. **Can I buy it?** `Gold`, `AP`, or `Not directly purchasable` is always written out.
-3. **What does one pull cost?** Show the unit price beside the denomination.
-4. **How likely is this item?** Show the per-pull percentage before expected-value figures.
-5. **How much effort should I expect?** Show expected pulls and expected total spend.
-6. **What else is in the pool?** Keep complete pool odds in the existing labelled dialog.
+1. **Which gacha?** Coin artwork (when mapped) plus the gacha identity control that opens the
+   detailed odds popup.
+2. **What else acquires this coin or path?** When nested alternatives exist, show an
+   `Alternative` row with those sources.
+3. **What else is in the pool?** Keep complete pool odds in the existing labelled dialog
+   (item, chance, expected pulls).
 
-The summary uses one compact coin row and one metrics row, not a sentence assembled from
-unlabelled numbers. Gold uses a warm semantic chip and AP uses a cool semantic chip, but
-both retain explicit text; color is never the only denomination signal. Coin color is also
-written (`Burgundy-gold coin`, `Blue cube`, and so on) because the artwork alone is not
-accessible evidence. At narrow widths the metrics wrap within the Source cell while the
-table remains its own horizontal scroll region.
+Do not render gacha summary metrics, economics blocks, purchase chips, unit price rows, or
+`Expected spend` copy in the source cell. Do not write coin color labels such as
+`Burgundy-gold coin`; accessible coin art names use the gacha name and shape only
+(for example `{gacha name} coin artwork`).
 
-If a coin has no enabled direct shop source, never infer a price or denomination. Show
-`Not directly purchasable` and preserve the nested alternative acquisition path.
+If a coin has no enabled direct shop source, never invent a price or denomination in the
+summary. Preserve the nested alternative acquisition path when one exists.
 
 ## Item art policy
 
@@ -273,7 +311,7 @@ The fallback is a bordered inset tile with the accessible label
 - Use `header`, `main`, and `footer` landmarks and one visible `<h1>`.
 - Preserve native inputs. Maintain WCAG AA contrast.
 - Use native `<details>/<summary>` for progressive disclosure so keyboard and state semantics are free.
-- Focus: `outline: 3px solid var(--jf-focus); outline-offset: 2px`.
+- Focus: visible focus ring using the accent glow token with clear offset.
 - Targets: 44x44px mobile and 32x32px desktop.
 - Never communicate state by color alone.
 - Label the table scroll region `Item comparison results`.
@@ -285,17 +323,22 @@ The fallback is a bordered inset tile with the accessible label
 - Browser-default fieldsets, serif defaults, native-blue focus, `aliceblue`, raw `blue`, or raw `red`.
 - Arbitrary spacing/radii/shadows outside tokens.
 - Marketing hero, decorative AI imagery, particles, or gradient mesh.
+- Player-journey steppers or authenticity cue badges.
 - Result cards or accordion rows on mobile.
+- Winner-only result bodies that drop lower-ranked eligible items.
 - Page-wide horizontal overflow.
 - Drag-only priority controls.
-- Unlabelled `X` buttons or href-less action links.
+- Unlabelled action buttons or href-less action links.
 - Coordinate-positioned or keyboard-inaccessible dialogs.
+- Divergent widths for generic dialogs vs item-details dialogs.
 - Opacity-only disabled states.
 - Hidden loading, empty, error, or partial-data states.
 - Official-looking fallback art.
 - Hover-only information or color-only status.
 - Visible developer TODO content.
 - Continuous decorative animation.
+- Gacha source-cell metrics, economics, purchase, or expected-spend chrome.
+- Written coin color wording as the accessibility signal for gacha art.
 
 ## Accepted debt
 
@@ -304,3 +347,5 @@ The fallback is a bordered inset tile with the accessible label
   keyboard accessible.
 - Item data still depends on live JFTSE and GitHub sources. The local Bun preview supplies a
   same-origin shop proxy and a named inline error state, but it does not cache a full offline copy.
+- `projectGachaEconomics` may remain as a pure helper for tests or future work, but the live
+  source cell must not surface those figures until product explicitly reintroduces them.

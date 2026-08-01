@@ -144,7 +144,6 @@ export class Item {
     max_wil = 0;
     element_enchantable = false;
     parcel_enabled = false;
-    parcel_from_shop = false;
     spin = 0;
     atss = 0;
     dfss = 0;
@@ -439,77 +438,6 @@ function parseItemData(data: string) {
     }
 }
 
-function parseShopData(data: string) {
-    const debugShopParsing = false;
-    if (data.length < 1000) {
-        console.warn(`Shop file is only ${data.length} bytes long`);
-    }
-    let currentIndex = 0;
-    for (const match of data.matchAll(/<Product DISPLAY="\d+" HIT_DISPLAY="\d+" Index="(?<index>\d+)" Enable="(?<enabled>0|1)" New="\d+" Hit="\d+" Free="\d+" Sale="\d+" Event="\d+" Couple="\d+" Nobuy="\d+" Rand="[^"]+" UseType="[^"]+" Use0="\d+" Use1="\d+" Use2="\d+" PriceType="(?<price_type>(?:MINT)|(?:GOLD))" OldPrice0="-?\d+" OldPrice1="-?\d+" OldPrice2="-?\d+" Price0="(?<price>-?\d+)" Price1="-?\d+" Price2="-?\d+" CouplePrice="-?\d+" Category="(?<category>[^"]*)" Name="(?<name>[^"]*)" GoldBack="-?\d+" EnableParcel="(?<parcel_from_shop>0|1)" Char="-?\d+" Item0="(?<item0>-?\d+)" Item1="(?<item1>-?\d+)" Item2="(?<item2>-?\d+)" Item3="(?<item3>-?\d+)" Item4="(?<item4>-?\d+)" Item5="(?<item5>-?\d+)" Item6="(?<item6>-?\d+)" Item7="(?<item7>-?\d+)" Item8="(?<item8>-?\d+)" Item9="(?<item9>-?\d+)" ?(?:Icon="[^"]*" ?)?(?:Name_kr="[^"]*" ?)?(?:Name_en="(?<name_en>[^"]*)" ?)?(?:Name_th="[^"]*" ?)?\/>/g)) {
-        if (!match.groups) {
-            continue;
-        }
-        const index = parseInt(match.groups.index);
-        if (currentIndex + 1 !== index) {
-            debugShopParsing && console.warn(`Failed parsing shop item index ${currentIndex + 2 === index ? currentIndex + 1 : `${currentIndex + 1} to ${index - 1}`}`);
-        }
-        currentIndex = index;
-        const name = match.groups.name;
-        const category = match.groups.category;
-        if (category === "LOTTERY") {
-            gachas.set(index, new Gacha(index, parseInt(match.groups.item0), name));
-        }
-        const enabled = !!parseInt(match.groups.enabled);
-        const price_type: "ap" | "gold" | "none" = match.groups.price_type === "MINT" ? "ap" : match.groups.price_type === "GOLD" ? "gold" : "none";
-        const price = parseInt(match.groups.price);
-        const parcel_from_shop = !!parseInt(match.groups.parcel_from_shop);
-        const itemIDs = [
-            parseInt(match.groups.item0),
-            parseInt(match.groups.item1),
-            parseInt(match.groups.item2),
-            parseInt(match.groups.item3),
-            parseInt(match.groups.item4),
-            parseInt(match.groups.item5),
-            parseInt(match.groups.item6),
-            parseInt(match.groups.item7),
-            parseInt(match.groups.item8),
-            parseInt(match.groups.item9),
-        ];
-
-        const inner_items = itemIDs.filter(id => !!id && items.get(id)).map(id => items.get(id)!);
-
-        if (category === "PARTS") {
-            if (inner_items.length === 1) {
-                shop_items.set(index, inner_items[0]);
-            }
-            else {
-                const item = new Item();
-                item.name_en = match.groups.name_en || match.groups.name;
-                shop_items.set(index, item);
-            }
-            if (enabled) {
-                const itemSource = new ShopItemSource(index, price, price_type === "ap", inner_items);
-                for (const item of inner_items) {
-                    item.sources.push(itemSource);
-                }
-            }
-        }
-        else if (category === "LOTTERY") {
-            const gachaItem = new Item();
-            gachaItem.name_en = match.groups.name_en || match.groups.name;
-            shop_items.set(index, gachaItem);
-            if (enabled) {
-                gachaItem.sources.push(new ShopItemSource(index, price, price_type === "ap", inner_items));
-            }
-        }
-        else {
-            const otherItem = new Item();
-            otherItem.name_en = match.groups.name_en || match.groups.name;
-            shop_items.set(index, otherItem);
-        }
-    }
-}
-
 class ApiItem {
     productIndex = 0;
     display = 0;
@@ -745,7 +673,6 @@ export async function downloadItems() {
     const itemURL = itemSource + "/Item_Parts_Ini3.xml";
     const itemData = download(itemURL);
     const itemArtData = download("/assets/item-art-map.json");
-    //const shopURL = itemSource + "/Shop_Ini3.xml";
     const max_shop_pages = 20; //currently need only 10, should be enough
     const shopURL = "/api/shop?size=1000&page=";
     const shopDatas = [...Array(max_shop_pages).keys()].map(n => download(`${shopURL}${n}`));
@@ -753,7 +680,6 @@ export async function downloadItems() {
     const guardianData = download(guardianURL);
     parseItemData(await itemData);
     itemArtMap = JSON.parse(await itemArtData) as ItemArtMap;
-    //parseShopData(await shopData);
     await Promise.all(shopDatas.map(p => p.then(data => parseApiShopData(data))));
 
     if (progressbar instanceof HTMLProgressElement) {
@@ -850,34 +776,6 @@ export function createPopupLink(text: string, content: HTMLElement | string | (H
         showDialog(button, `${text} details`, content);
     });
     return button;
-}
-
-function createChancePopup(tries: number) {
-    function probabilityAfterNTries(probability: number, tries: number) {
-        return 1 - (Math.pow((1 - probability), tries));
-    }
-
-    const content = createHTML([
-        "table",
-        [
-            "tr",
-            ["th", "Number of gachas"],
-            ["th", "Chance for item"],
-        ],
-    ]);
-    for (const factor of [0.1, 0.5, 1, 2, 5, 10]) {
-        const gachas = Math.round(tries * factor);
-        if (gachas === 0) {
-            continue;
-        }
-        content.appendChild(createHTML([
-            "tr",
-            ["td", { class: "numeric" }, `${gachas}`],
-            ["td", { class: "numeric" }, `${(probabilityAfterNTries(1 / tries, gachas) * 100).toFixed(4)}%`],
-        ]));
-    }
-    content.appendChild(createHTML(["tr"]));
-    return createPopupLink(`${prettyNumber(tries, 2)}`, content);
 }
 
 function quantityString(quantity_min: number, quantity_max: number) {
@@ -1030,23 +928,6 @@ function makeSourcesList(list: (HTMLElement | string)[][]): (HTMLElement | strin
     return result;
 }
 
-function formatPlayerNumber(value: number) {
-    return new Intl.NumberFormat("en-US", {
-        maximumFractionDigits: 2,
-    }).format(value);
-}
-
-function createCurrencyChip(currency: "AP" | "Gold") {
-    return createHTML([
-        "span",
-        {
-            class: `gacha-currency gacha-currency--${currency.toLowerCase()}`,
-            "data-currency": currency,
-        },
-        currency,
-    ]);
-}
-
 function createGachaSourceSummary(
     item: Item,
     itemSource: GachaItemSource,
@@ -1057,35 +938,15 @@ function createGachaSourceSummary(
     if (!gacha) {
         throw "Internal error";
     }
-    const art = itemArtMap.lotteries[`${gacha.gacha_index}`];
-    const expectedPulls = itemSource.gachaTries(item, character);
     const directSource = itemSource.item.sources.find(
         (source): source is ShopItemSource => source instanceof ShopItemSource,
     );
-    const economics = projectGachaEconomics(expectedPulls, directSource);
     const alternativeSources = itemSourcesToElementArray(
         itemSource.item,
         source => source !== directSource && sourceFilter(source),
         itemSource.requiresGuardian ? undefined : character,
     );
     const alternativeList = makeSourcesList(alternativeSources);
-    const purchase = economics.availability === "direct"
-        ? createHTML([
-            "div",
-            { class: "gacha-purchase" },
-            createCurrencyChip(economics.currency),
-            ["span", `${formatPlayerNumber(economics.pricePerPull)} per pull`],
-            [
-                "span",
-                { class: "gacha-expected-spend" },
-                `Expected spend ~${formatPlayerNumber(economics.expectedSpend)} ${economics.currency}`,
-            ],
-        ])
-        : createHTML([
-            "span",
-            { class: "gacha-purchase gacha-purchase--unavailable" },
-            "Not directly purchasable",
-        ]);
 
     return createHTML([
         "div",
@@ -1106,22 +967,6 @@ function createGachaSourceSummary(
                     itemSource,
                     itemSource.requiresGuardian ? undefined : character,
                 ),
-                [
-                    "span",
-                    { class: "gacha-coin-color" },
-                    art ? `${art.color} ${art.shape}` : "Coin color unavailable",
-                ],
-            ],
-            [
-                "div",
-                { class: "gacha-metrics" },
-                [
-                    "dl",
-                    { class: "gacha-economics" },
-                    ["div", ["dt", "Chance"], ["dd", `${formatPlayerNumber(economics.chancePercent)}%`]],
-                    ["div", ["dt", "Expected pulls"], ["dd", `~${formatPlayerNumber(economics.expectedPulls)}`]],
-                ],
-                purchase,
             ],
             ...(alternativeList.length > 0
                 ? [createHTML([
@@ -1332,7 +1177,7 @@ function createGachaCoinArt(gacha: Gacha) {
     return createSpriteArt(
         art.sheet,
         art.cell,
-        `${art.color} ${art.shape} for ${gacha.name}`,
+        `${gacha.name} coin artwork`,
         "gacha-coin-art",
     ) ?? fallback();
 }
@@ -1403,7 +1248,7 @@ export function getResultsTable(
 
     const table = createHTML(
         ["table",
-            ["caption", "Best matching equipment by slot and selected stat priority"],
+            ["caption", "Matching equipment by slot and selected stat priority"],
             ["thead",
                 ["tr",
                     ["th", { class: "Name_column", scope: "col" }, "Item"],
@@ -1469,7 +1314,12 @@ export function getResultsTable(
     }
 
     function minCost(cost1: Cost, cost2: Cost): Cost {
-        return [cost1.ap, cost1.gold] < [cost1.ap, cost1.gold] ?
+        // Lexicographic on (ap, gold): lower AP wins, then lower Gold.
+        // Numeric compare only — do not use JS array/string ordering.
+        const pickCost1 =
+            cost1.ap < cost2.ap ||
+            (cost1.ap === cost2.ap && cost1.gold < cost2.gold);
+        return pickCost1 ?
             {
                 gold: cost1.gold,
                 ap: cost1.ap,
@@ -1483,48 +1333,49 @@ export function getResultsTable(
     }
 
     function costOf(item: Item, character?: Character): Cost {
-        return [...item.sources.values()]
+        const sourceCosts = [...item.sources.values()]
             .filter(sourceFilter)
-            .reduce((curr, itemSource) => {
-                const cost = (() => {
-                    if (itemSource instanceof ShopItemSource) {
-                        if (itemSource.ap) {
-                            return { gold: 0, ap: itemSource.price, maps: {} };
-                        }
-                        return { gold: itemSource.price, ap: 0, maps: {} };
+            .map((itemSource) => {
+                if (itemSource instanceof ShopItemSource) {
+                    if (itemSource.ap) {
+                        return { gold: 0, ap: itemSource.price, maps: {} };
                     }
-                    else if (itemSource instanceof GachaItemSource) {
-                        const singleCost = costOf(itemSource.item, character);
-                        const multiplier = itemSource.gachaTries(item, character);
-                        return {
-                            gold: singleCost.gold * multiplier,
-                            ap: singleCost.ap * multiplier,
-                            maps: Object.fromEntries(
-                                Object.entries(singleCost.maps)
-                                    .map(([map, tries]) => [map, tries.map(n => n * multiplier)])
-                            )
-                        };
-                    }
-                    else if (itemSource instanceof GuardianItemSource) {
-                        return {
-                            gold: 0,
-                            ap: 0,
-                            maps: Object.fromEntries([[itemSource.guardian_map, [itemSource.items.length]]])
-                        };
-                    }
-                    else {
-                        throw "Internal error";
-                    }
-                })();
-                return minCost(curr, cost);
-            },
-                { gold: 0, ap: 0, maps: {} }
-            );
+                    return { gold: itemSource.price, ap: 0, maps: {} };
+                }
+                else if (itemSource instanceof GachaItemSource) {
+                    const singleCost = costOf(itemSource.item, character);
+                    const multiplier = itemSource.gachaTries(item, character);
+                    return {
+                        gold: singleCost.gold * multiplier,
+                        ap: singleCost.ap * multiplier,
+                        maps: Object.fromEntries(
+                            Object.entries(singleCost.maps)
+                                .map(([map, tries]) => [map, tries.map(n => n * multiplier)])
+                        )
+                    };
+                }
+                else if (itemSource instanceof GuardianItemSource) {
+                    return {
+                        gold: 0,
+                        ap: 0,
+                        maps: Object.fromEntries([[itemSource.guardian_map, [itemSource.items.length]]])
+                    };
+                }
+                else {
+                    throw "Internal error";
+                }
+            });
+        if (sourceCosts.length === 0) {
+            return { gold: 0, ap: 0, maps: {} };
+        }
+        // Seed with the first real source cost. A {0,0} identity would always win
+        // under a correct min, and the old always-last bug hid that.
+        return sourceCosts.reduce((curr, cost) => minCost(curr, cost));
     }
 
+    const priorityStatistics: Record<string, number> = Object.fromEntries(priorityStats.map(stat => [stat, 0]));
     const statistics = {
         characters: new Set<Character>,
-        ...priorityStats.reduce((curr, stat) => ({ ...curr, [stat]: 0 }), {}),
         Level: 0,
         cost: { ap: 0, gold: 0, maps: {} } as Cost,
     };
@@ -1535,13 +1386,11 @@ export function getResultsTable(
         }
 
         for (const stat of priorityStats) {
-            //@ts-ignore
-            if (typeof statistics[stat] !== "number") {
+            if (typeof priorityStatistics[stat] !== "number") {
                 continue;
             }
             const value = stat.split("+").reduce((curr, statName) => curr + result[0].statFromString(statName), 0);
-            //@ts-ignore
-            statistics[stat] += value;
+            priorityStatistics[stat] += value;
         }
 
         statistics.Level = Math.max(result[0].level, statistics.Level);
@@ -1551,8 +1400,13 @@ export function getResultsTable(
                 statistics.characters.add(char)
                 tableBody.appendChild(itemToTableRow(item, sourceFilter, priorityStats, char));
             }
-            statistics.cost = combineCosts(costOf(item, character && isCharacter(character) ? character : undefined), statistics.cost);
         }
+        // Footer cost must match stats/level: best candidate per slot only.
+        // The body still renders the full ranked list above.
+        statistics.cost = combineCosts(
+            costOf(result[0], character && isCharacter(character) ? character : undefined),
+            statistics.cost,
+        );
     }
 
     if (statistics.characters.size === 1) {
@@ -1572,8 +1426,7 @@ export function getResultsTable(
                 ["td", { class: "total Character_column" }],
                 ["td", { class: "total Part_column" }],
                 ...priorityStats.map(stat => createHTML(["td", { class: "total numeric" },
-                    //@ts-ignore
-                    `${statistics[stat]}`
+                    `${priorityStatistics[stat]}`
                 ])),
                 ["td", { class: "total Level_column numeric" }, `${statistics.Level}`],
                 ["td", { class: "total Source_column" }, total_sources.join(", ")],
@@ -1588,8 +1441,7 @@ export function getResultsTable(
     }
 
     for (const attribute of priorityStats) {
-        //@ts-ignore
-        if (statistics[attribute] === 0) {
+        if (priorityStatistics[attribute] === 0) {
             for (const column_element of table.getElementsByClassName(`${attribute}_column`)) {
                 if (!(column_element instanceof HTMLElement)) {
                     continue;

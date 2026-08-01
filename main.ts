@@ -41,6 +41,18 @@ const availabilityFilter = [
 
 const excluded_item_ids = new Set<number>();
 
+/** Digits-only safe-integer parse for excluded_item_ids localStorage tokens. */
+export function parseExcludedItemIdToken(token: string): number | undefined {
+    if (!/^\d+$/.test(token)) {
+        return undefined;
+    }
+    const id = Number(token);
+    if (!Number.isSafeInteger(id)) {
+        return undefined;
+    }
+    return id;
+}
+
 function addFilterTrees() {
     const target = document.getElementById("characterFilters");
     if (!target) {
@@ -208,7 +220,7 @@ function setSelectedCharacter(character: Character | "All") {
 }
 
 
-export const itemSelectors = ["partsSelector", "gachaSelector", "otherItemsSelector"] as const;
+export const itemSelectors = ["partsSelector", "gachaSelector"] as const;
 export type ItemSelector = typeof itemSelectors[number];
 export function isItemSelector(itemSelector: string): itemSelector is ItemSelector {
     return (itemSelectors as unknown as string[]).includes(itemSelector);
@@ -228,13 +240,6 @@ function getItemTypeSelection(): ItemSelector {
     }
     if (gachaSelector.checked) {
         return "gachaSelector";
-    }
-    const otherItemsSelector = document.getElementById("otherItemsSelector");
-    if (!(otherItemsSelector instanceof HTMLInputElement)) {
-        throw "Internal error";
-    }
-    if (otherItemsSelector.checked) {
-        return "otherItemsSelector";
     }
     throw "Internal error";
 }
@@ -343,6 +348,17 @@ function restoreSelection() {
         enchantToggle.checked = !!Variable_storage.get_variable("enchantToggle");
     }
 
+    // Rehydrate exclusions before any save-capable event (change/input → updateResults → saveSelection).
+    const excluded_ids = Variable_storage.get_variable("excluded_item_ids");
+    if (typeof excluded_ids === "string") {
+        for (const id of excluded_ids.split(",")) {
+            const parsed = parseExcludedItemIdToken(id);
+            if (parsed !== undefined) {
+                excluded_item_ids.add(parsed);
+            }
+        }
+    }
+
     { //item selection
         let itemTypeSelector = Variable_storage.get_variable("itemTypeSelector");
         if (typeof itemTypeSelector !== "string" || !isItemSelector(itemTypeSelector)) {
@@ -355,14 +371,6 @@ function restoreSelection() {
         selector.checked = true;
         selector.dispatchEvent(new Event("change", { bubbles: false, cancelable: true }));
     }
-
-    const excluded_ids = Variable_storage.get_variable("excluded_item_ids");
-    if (typeof excluded_ids === "string") {
-        for (const id of excluded_ids.split(",")) {
-            excluded_item_ids.add(parseInt(id));
-        }
-    }
-    excluded_item_ids.delete(NaN);
 
     //must be last because it triggers a store
     levelrange.dispatchEvent(new Event("input"));
@@ -396,8 +404,6 @@ function updateResults() {
                 break;
             case 'gachaSelector':
                 break;
-            case 'otherItemsSelector':
-                break;
         }
     }
 
@@ -408,8 +414,6 @@ function updateResults() {
                 filters.push(item => partsStates[item.part]);
                 break;
             case 'gachaSelector':
-                break;
-            case 'otherItemsSelector':
                 break;
         }
     }
@@ -490,25 +494,39 @@ function updateResults() {
 
         }
         itemFilterList.replaceChildren();
-        for (const id of excluded_item_ids) {
-            const item = items.get(id);
-            if (!item) {
-                continue;
-            }
+        if (excluded_item_ids.size === 0) {
             itemFilterList.appendChild(createHTML([
-                "div",
-                item.name_en,
-                createHTML([
-                    "button",
-                    {
-                        class: "item_removal_removal",
-                        "data-item_index": `${id}`,
-                        "aria-label": `Remove ${item.name_en} from exclusions`,
-                        type: "button",
-                    },
-                    "Remove",
-                ]),
+                "p",
+                { class: "empty-note" },
+                "No excluded items",
             ]));
+        }
+        else {
+            for (const id of excluded_item_ids) {
+                const item = items.get(id);
+                if (!item) {
+                    continue;
+                }
+                itemFilterList.appendChild(createHTML([
+                    "div",
+                    { class: "excluded-item" },
+                    [
+                        "span",
+                        { class: "excluded-item__name" },
+                        item.name_en,
+                    ],
+                    createHTML([
+                        "button",
+                        {
+                            class: "item_removal_removal",
+                            "data-item_index": `${id}`,
+                            "aria-label": `Restore ${item.name_en}`,
+                            type: "button",
+                        },
+                        "Restore",
+                    ]),
+                ]));
+            }
         }
 
     }
@@ -546,14 +564,6 @@ function updateResults() {
                 );
             case 'gachaSelector':
                 return getGachaTable(item => filters.every(filter => filter(item)), selectedCharacter);
-            case 'otherItemsSelector':
-                return createHTML(
-                    ["table",
-                        ["tr",
-                            ["th", "TODO: Other items"],
-                        ]
-                    ]
-                );
         }
     })();
 
@@ -755,15 +765,6 @@ function setItemTypeSelectorFunctionality() {
         updateResults();
     });
 
-    const otherItemsSelector = document.getElementById("otherItemsSelector");
-    if (!(otherItemsSelector instanceof HTMLInputElement)) {
-        return;
-    }
-    otherItemsSelector.addEventListener("change", () => {
-        priority_group.classList.add("disabled");
-        partsFilter.classList.add("disabled");
-        updateResults();
-    });
 }
 
 window.addEventListener("load", async () => {

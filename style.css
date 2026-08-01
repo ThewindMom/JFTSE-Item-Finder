@@ -328,66 +328,6 @@ summary:focus-visible,
     font-size: var(--jf-type-body);
 }
 
-.player-journey {
-    display: flex;
-    gap: var(--jf-space-2);
-    margin: var(--jf-space-4) 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.player-journey li {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0 var(--jf-space-2);
-    min-width: 132px;
-    padding: var(--jf-space-2) var(--jf-space-3);
-    border: 1px solid var(--jf-border-subtle);
-    border-radius: var(--jf-radius-md);
-    background: var(--jf-surface-glass);
-    backdrop-filter: blur(10px);
-}
-
-.player-journey span {
-    grid-row: span 2;
-    align-self: center;
-    color: var(--jf-accent);
-    font-family: var(--jf-font-data);
-    font-size: var(--jf-type-caption);
-}
-
-.player-journey strong {
-    color: var(--jf-text);
-    font-family: var(--jf-font-display);
-    font-size: var(--jf-type-section);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.player-journey small {
-    color: var(--jf-text-muted);
-    font-size: 11px;
-}
-
-.authentic-data-cue {
-    display: inline-flex;
-    gap: var(--jf-space-2);
-    align-items: center;
-    margin: var(--jf-space-3) 0 0;
-    color: var(--jf-text-muted);
-    font-size: var(--jf-type-caption);
-    letter-spacing: 0.04em;
-}
-
-.authentic-data-cue::before {
-    inline-size: 6px;
-    block-size: 6px;
-    border-radius: var(--jf-radius-pill);
-    background: var(--jf-accent);
-    box-shadow: 0 0 12px var(--jf-accent);
-    content: "";
-}
-
 .filter-toggle,
 .panel__mobile-header {
     display: none;
@@ -777,22 +717,43 @@ ul.layout label {
     gap: var(--jf-space-2);
 }
 
-#itemFilter > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--jf-space-2);
-    min-height: 32px;
-    padding: var(--jf-space-1) var(--jf-space-2);
-    border: 1px solid var(--jf-border-subtle);
-    border-radius: var(--jf-radius-sm);
-    background: var(--jf-surface-inset);
-}
-
 .item_removal,
 .item_removal_removal {
     padding-inline: var(--jf-space-2);
 }
+
+.exclusion-section .section-hint {
+    margin: 0 0 var(--jf-space-2);
+    color: var(--jf-text-muted);
+    font-size: var(--jf-type-caption);
+}
+
+.excluded-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--jf-space-3);
+    margin-block: var(--jf-space-2);
+    padding: var(--jf-space-2) var(--jf-space-3);
+    border: 1px solid var(--jf-border);
+    border-radius: var(--jf-radius-md);
+    background: var(--jf-surface-raised);
+}
+
+.excluded-item__name {
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#itemFilter .empty-note {
+    margin: 0;
+    color: var(--jf-text-muted);
+    font-size: var(--jf-type-caption);
+}
+
 
 .item_removal {
     margin-right: var(--jf-space-2);
@@ -1258,17 +1219,11 @@ td.total {
     min-width: 0;
 }
 
-.gacha-identity,
-.gacha-metrics,
-.gacha-economics,
-.gacha-purchase {
+.gacha-identity {
     display: flex;
     min-width: 0;
     align-items: center;
     flex-wrap: wrap;
-}
-
-.gacha-identity {
     gap: var(--jf-space-2);
 }
 
@@ -1279,74 +1234,6 @@ td.total {
     font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.gacha-coin-color {
-    color: var(--jf-text-muted);
-    font-size: var(--jf-type-caption);
-    text-transform: capitalize;
-}
-
-.gacha-metrics {
-    gap: var(--jf-space-2);
-    color: var(--jf-text-secondary);
-    font-size: var(--jf-type-caption);
-}
-
-.gacha-economics {
-    gap: var(--jf-space-2);
-    margin: 0;
-}
-
-.gacha-economics > div {
-    display: inline-flex;
-    gap: var(--jf-space-1);
-    align-items: baseline;
-}
-
-.gacha-economics dt {
-    color: var(--jf-text-muted);
-}
-
-.gacha-economics dd {
-    margin: 0;
-    color: var(--jf-text);
-    font-family: var(--jf-font-data);
-    font-weight: 600;
-}
-
-.gacha-purchase {
-    gap: 6px;
-}
-
-.gacha-currency {
-    padding: 2px 7px;
-    border: 1px solid currentColor;
-    border-radius: var(--jf-radius-pill);
-    font-family: var(--jf-font-data);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 15px;
-}
-
-.gacha-currency--gold {
-    background: var(--jf-currency-gold-wash);
-    color: var(--jf-currency-gold);
-}
-
-.gacha-currency--ap {
-    background: var(--jf-currency-ap-wash);
-    color: var(--jf-currency-ap);
-}
-
-.gacha-expected-spend {
-    color: var(--jf-text);
-    font-weight: 600;
-}
-
-.gacha-purchase--unavailable {
-    color: var(--jf-warning);
-    font-weight: 600;
 }
 
 .gacha-alternatives {
@@ -1363,7 +1250,6 @@ td.total {
 }
 
 .item-details-dialog {
-    width: min(92vw, 760px);
     max-height: min(88vh, 780px);
     padding: 0;
     overflow: auto;
@@ -1523,14 +1409,6 @@ td.total {
         var(--jf-surface-inset);
 }
 
-.item-details__sources .gacha-source-summary:has(.gacha-currency--gold) {
-    border-color: hsl(43 90% 70% / 30%);
-}
-
-.item-details__sources .gacha-source-summary:has(.gacha-currency--ap) {
-    border-color: hsl(278 78% 78% / 30%);
-}
-
 .item-details__empty {
     color: var(--jf-text-muted);
 }
@@ -1564,8 +1442,12 @@ td.total {
     color: var(--jf-text);
 }
 
+dialog,
+.item-details-dialog {
+    width: min(92vw, 1280px);
+}
+
 dialog {
-    width: min(92vw, 640px);
     max-height: min(84vh, 720px);
     padding: var(--jf-space-5);
     overflow: auto;
@@ -1663,26 +1545,7 @@ dialog button {
         font-size: 18px;
     }
 
-    .world-stage__description,
-    .authentic-data-cue {
-        display: none;
-    }
-
-    .player-journey {
-        gap: var(--jf-space-1);
-        margin-top: var(--jf-space-3);
-    }
-
-    .player-journey li {
-        min-width: 0;
-        padding: 6px var(--jf-space-2);
-    }
-
-    .player-journey strong {
-        font-size: var(--jf-type-label);
-    }
-
-    .player-journey small {
+    .world-stage__description {
         display: none;
     }
 
@@ -2039,10 +1902,6 @@ dialog button {
 
     .gacha-identity .popup_link {
         max-width: 92px;
-    }
-
-    .gacha-metrics {
-        gap: var(--jf-space-1) var(--jf-space-2);
     }
 
     .item-details-dialog {

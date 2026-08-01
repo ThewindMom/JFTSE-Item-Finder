@@ -61,7 +61,7 @@ test("persists typed filter values", () => {
     expect(Variable_storage.variables).toEqual({});
 });
 
-test("preserves lexicographic priority ordering", () => {
+test("orders every candidate by lexicographic priority without dropping lower ranks", () => {
     type Candidate = {
         name: string;
         primary: number;
@@ -77,19 +77,19 @@ test("preserves lexicographic priority ordering", () => {
         [current],
         { name: "better primary", primary: 11, secondary: 0 },
         comparators,
-    ).map(({ name }) => name)).toEqual(["better primary"]);
+    ).map(({ name }) => name)).toEqual(["better primary", "current"]);
 
     expect(selectByPriority(
         [current],
         { name: "worse primary", primary: 9, secondary: 99 },
         comparators,
-    ).map(({ name }) => name)).toEqual(["current"]);
+    ).map(({ name }) => name)).toEqual(["current", "worse primary"]);
 
     expect(selectByPriority(
         [current],
         { name: "better secondary", primary: 10, secondary: 3 },
         comparators,
-    ).map(({ name }) => name)).toEqual(["better secondary"]);
+    ).map(({ name }) => name)).toEqual(["better secondary", "current"]);
 
     expect(selectByPriority(
         [current],
