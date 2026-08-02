@@ -1819,6 +1819,382 @@ button.gacha-source-channel {
     box-shadow: 0 10px 28px var(--jf-accent-glow);
 }
 
+/* Stage (Guardian / Boss) details dossier — boss portrait first, then facts and rewards. */
+.stage-details-dialog {
+    /* Narrower than item dossier: stage cards are portrait-like, not data tables. */
+    width: min(92vw, 560px);
+    max-height: min(88vh, 780px);
+    padding: 0;
+    overflow: auto;
+    border-radius: var(--jf-radius-xl);
+    background: var(--jf-surface-glass);
+}
+
+.stage-details-dialog[open] {
+    animation: item-details-enter var(--jf-motion-standard);
+}
+
+.stage-details {
+    display: grid;
+}
+
+.stage-details__header {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: var(--jf-space-4);
+    align-items: center;
+    padding: var(--jf-space-5) var(--jf-space-6) var(--jf-space-4);
+    background:
+        linear-gradient(120deg, var(--jf-source-boss-wash), transparent 50%),
+        radial-gradient(circle at 92% 12%, var(--jf-world-glow), transparent 12rem),
+        var(--jf-surface-raised);
+}
+
+.stage-details--guardian .stage-details__header {
+    background:
+        linear-gradient(120deg, var(--jf-source-guardian-wash), transparent 50%),
+        radial-gradient(circle at 92% 12%, var(--jf-world-glow), transparent 12rem),
+        var(--jf-surface-raised);
+}
+
+.stage-details__portrait {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    inline-size: 96px;
+    block-size: 96px;
+    border: 1px solid var(--jf-border-strong);
+    border-radius: var(--jf-radius-lg);
+    background:
+        radial-gradient(circle at 40% 30%, var(--jf-source-boss-wash), transparent 70%),
+        var(--jf-surface-inset);
+    box-shadow:
+        0 0 0 4px hsl(48 100% 98% / 82%),
+        0 12px 28px hsl(14 56% 31% / 18%);
+}
+
+.stage-details__portrait-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+}
+
+.stage-details__portrait--fallback {
+    color: var(--jf-source-boss);
+    font-family: var(--jf-font-display);
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.stage-details__identity {
+    display: grid;
+    gap: var(--jf-space-1);
+    min-width: 0;
+}
+
+.stage-details__eyebrow {
+    color: var(--jf-source-guardian);
+    font-size: var(--jf-type-caption);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.stage-details--boss .stage-details__eyebrow {
+    color: var(--jf-source-boss);
+}
+
+.stage-details h2,
+.stage-details h3,
+.stage-details p {
+    margin: 0;
+}
+
+.stage-details h2 {
+    color: var(--jf-text);
+    font-family: var(--jf-font-display);
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+}
+
+.stage-details__meta {
+    color: var(--jf-text-secondary);
+    font-size: var(--jf-type-body);
+}
+
+.stage-details__boss-summary {
+    margin-top: var(--jf-space-2) !important;
+    color: var(--jf-source-boss);
+    font-family: var(--jf-font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.stage-details--guardian .stage-details__boss-summary {
+    color: var(--jf-source-guardian);
+}
+
+.stage-details__bosses {
+    display: grid;
+    gap: var(--jf-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.stage-details__boss-item {
+    display: grid;
+    grid-template-columns: 40px 44px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--jf-space-2);
+    min-height: 48px;
+    padding: var(--jf-space-2) var(--jf-space-3);
+    border: 1px solid var(--jf-border-subtle);
+    border-radius: var(--jf-radius-md);
+    background: var(--jf-surface-inset);
+}
+
+.stage-details__boss-item--primary {
+    border-color: color-mix(in srgb, var(--jf-source-boss) 35%, var(--jf-border-subtle));
+    background:
+        linear-gradient(90deg, var(--jf-source-boss-wash), transparent 72%),
+        var(--jf-surface-raised);
+}
+
+.stage-details__boss-thumb {
+    display: block;
+    inline-size: 40px;
+    block-size: 40px;
+    overflow: hidden;
+    border: 1px solid var(--jf-border);
+    border-radius: var(--jf-radius-md);
+    object-fit: cover;
+    object-position: center top;
+    background: var(--jf-surface);
+}
+
+.stage-details__boss-thumb--fallback {
+    display: grid;
+    place-items: center;
+    color: var(--jf-source-boss);
+    font-family: var(--jf-font-display);
+    font-weight: 700;
+}
+
+.stage-details__boss-role {
+    color: var(--jf-text-muted);
+    font-size: var(--jf-type-caption);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stage-details__boss-item--primary .stage-details__boss-role {
+    color: var(--jf-source-boss);
+}
+
+.stage-details__boss-name {
+    min-width: 0;
+    color: var(--jf-text);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.stage-details__side-pool {
+    display: grid;
+    gap: var(--jf-space-1);
+    margin-top: var(--jf-space-3);
+    padding: var(--jf-space-3);
+    border: 1px dashed var(--jf-border);
+    border-radius: var(--jf-radius-md);
+    background:
+        linear-gradient(135deg, var(--jf-source-guardian-wash), transparent 70%),
+        var(--jf-surface-inset);
+}
+
+.stage-details__side-pool-label,
+.stage-details__side-pool-names,
+.stage-details__side-pool-hint {
+    margin: 0;
+}
+
+.stage-details__side-pool-label {
+    color: var(--jf-source-guardian);
+    font-size: var(--jf-type-caption);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stage-details__side-pool-names {
+    color: var(--jf-text);
+    font-size: var(--jf-type-body);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.stage-details__side-pool-hint {
+    color: var(--jf-text-muted);
+    font-size: 11px;
+}
+
+.stage-details__section {
+    display: grid;
+    gap: var(--jf-space-3);
+    padding: var(--jf-space-4) var(--jf-space-6) var(--jf-space-5);
+    border-top: 1px solid var(--jf-border-subtle);
+}
+
+.stage-details__section h3 {
+    color: var(--jf-text);
+    font-family: var(--jf-font-display);
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stage-details__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--jf-space-2);
+    margin: 0;
+}
+
+.stage-details__fact {
+    display: grid;
+    gap: 2px;
+    min-height: 44px;
+    padding: var(--jf-space-3);
+    border: 1px solid var(--jf-border-subtle);
+    border-radius: var(--jf-radius-md);
+    background:
+        linear-gradient(90deg, var(--jf-source-guardian-wash), transparent 70%),
+        var(--jf-surface-inset);
+}
+
+.stage-details--boss .stage-details__fact {
+    background:
+        linear-gradient(90deg, var(--jf-source-boss-wash), transparent 70%),
+        var(--jf-surface-inset);
+}
+
+.stage-details__fact dt {
+    color: var(--jf-text-muted);
+    font-size: var(--jf-type-caption);
+}
+
+.stage-details__fact dd {
+    margin: 0;
+    color: var(--jf-text);
+    font-family: var(--jf-font-data);
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.stage-details__rewards {
+    display: grid;
+    gap: var(--jf-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.stage-details__reward {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--jf-space-3);
+    min-height: 48px;
+    padding: var(--jf-space-2) var(--jf-space-3);
+    border: 1px solid var(--jf-border-subtle);
+    border-radius: var(--jf-radius-md);
+    background: var(--jf-surface-inset);
+}
+
+.stage-details__reward--current {
+    border-color: var(--jf-border-strong);
+    background:
+        linear-gradient(90deg, var(--jf-accent-wash), transparent 62%),
+        var(--jf-surface-raised);
+    box-shadow: 0 0 0 1px var(--jf-accent-glow);
+}
+
+.stage-details__reward-art {
+    display: block;
+    flex-shrink: 0;
+    inline-size: 40px;
+    block-size: 40px;
+    overflow: hidden;
+    border: 1px solid var(--jf-border);
+    border-radius: var(--jf-radius-sm);
+    background-color: var(--jf-surface);
+    background-image: var(--item-art-image);
+    background-position: var(--item-art-x) var(--item-art-y);
+    background-repeat: no-repeat;
+    background-size: var(--item-art-size) var(--item-art-size);
+}
+
+/* Gacha coin rewards use the same lottery sprite as the results table. */
+.stage-details__reward-art--coin {
+    border-radius: 50%;
+    background-color: var(--jf-surface-inset);
+    box-shadow:
+        0 0 0 2px var(--jf-surface-inset),
+        0 0 12px var(--jf-accent-glow);
+}
+
+.stage-details__reward .item-art-fallback {
+    inline-size: 40px;
+    block-size: 40px;
+    min-width: 40px;
+    padding: 2px;
+    font-size: 8px;
+    line-height: 1.15;
+}
+
+.stage-details__reward-name {
+    min-width: 0;
+    color: var(--jf-text);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.stage-details__reward-badge {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: var(--jf-radius-pill);
+    background: var(--jf-accent-wash);
+    color: var(--jf-accent-heading);
+    font-size: var(--jf-type-caption);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.stage-details__empty {
+    color: var(--jf-text-muted);
+}
+
+.stage-details-dialog__close {
+    /* Not sticky: sticky close sat on top of facts/rewards under a tall hero. */
+    width: calc(100% - 40px);
+    min-height: 44px;
+    margin: var(--jf-space-2) var(--jf-space-5) var(--jf-space-5);
+    border-radius: var(--jf-radius-md);
+    background:
+        linear-gradient(90deg, var(--jf-accent-strong), var(--jf-accent));
+    color: var(--jf-text-on-accent);
+    box-shadow: 0 10px 28px var(--jf-accent-glow);
+}
+
 .popup_link {
     display: inline;
     padding: 0;
@@ -1853,6 +2229,11 @@ dialog,
     width: min(92vw, 1280px);
 }
 
+/* Re-assert after generic dialog width — stage cards stay compact. */
+.stage-details-dialog {
+    width: min(92vw, 560px);
+}
+
 dialog {
     max-height: min(84vh, 720px);
     padding: var(--jf-space-5);
@@ -1868,6 +2249,18 @@ dialog {
 dialog::backdrop {
     background: var(--jf-overlay);
     backdrop-filter: blur(5px);
+}
+
+/* Prevent page and nested scrollers from moving behind an open modal. */
+html.dialog-open,
+html.dialog-open body {
+    overflow: hidden;
+}
+
+html.dialog-open .control-rail,
+html.dialog-open .table-scroll,
+html.dialog-open .table-hscroll {
+    overflow: hidden;
 }
 
 dialog table {
@@ -2327,12 +2720,22 @@ dialog button {
         border-radius: 18px;
     }
 
+    .stage-details-dialog {
+        width: calc(100vw - 24px);
+        max-width: 560px;
+        max-height: calc(100dvh - 24px);
+        border-radius: 18px;
+    }
+
     .item-details__header,
-    .item-details__section {
+    .item-details__section,
+    .stage-details__header,
+    .stage-details__section {
         padding: var(--jf-space-4);
     }
 
-    .item-details-dialog__close {
+    .item-details-dialog__close,
+    .stage-details-dialog__close {
         width: calc(100% - 32px);
         min-height: 44px;
         margin: 0 var(--jf-space-4) var(--jf-space-4);
@@ -2370,6 +2773,7 @@ dialog button {
     }
 
     .item-details-dialog[open],
+    .stage-details-dialog[open],
     .filter-toggle:active,
     .item-details-trigger:active,
     .popup_link:active,

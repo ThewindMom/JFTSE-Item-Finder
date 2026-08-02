@@ -4,6 +4,8 @@
         "build": "make -j",
         "clean": "make -j clean",
         "extract:item-art": "python3 tools/extract_item_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
+        "extract:map-art": "python3 tools/extract_map_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
+        "extract:stage-bosses": "python3 tools/extract_stage_bosses.py --jftse-root \"$JFTSE_ROOT\" --output-root assets",
         "start": "bun server.ts"
     },
     "comment": {

@@ -53,6 +53,61 @@ export function stageChannelLabel(map: string, needBoss: boolean): string {
     return `Boss · ${withoutBossSuffix}`;
 }
 
+/** Strip trailing Boss so titles read "Atlantis", not "Atlantis Boss". */
+export function stageTitleName(map: string): string {
+    return prettyGuardianMapName(map).replace(/\s+Boss$/i, "").trim();
+}
+
+export type MapArtFile = {
+    readonly file: string;
+    readonly width?: number;
+    readonly height?: number;
+    readonly kind?: string;
+};
+
+export type MapArtCatalog = {
+    readonly files: Readonly<Record<string, MapArtFile>>;
+    readonly byName: Readonly<Record<string, string>>;
+    readonly byMapId?: Readonly<Record<string, string>>;
+};
+
+/** Candidate stage keys for map art (Boss suffix + bare map name). */
+export function mapArtLookupKeys(mapName: string, needBoss = false): readonly string[] {
+    const keys = [mapName];
+    if (needBoss && !/Boss$/i.test(mapName)) {
+        keys.push(`${mapName}Boss`);
+    }
+    if (/Boss$/i.test(mapName)) {
+        keys.push(mapName.replace(/Boss$/i, ""));
+    }
+    return keys;
+}
+
+/**
+ * Resolve authentic client map art for a GuardianStages map name.
+ * Prefers UI map-select thumbs; falls back to stage-environment textures when catalogued.
+ * Never invents art — only returns an explicit catalog mapping.
+ */
+export function resolveMapArtFile(
+    mapName: string,
+    catalog: MapArtCatalog,
+    options?: { readonly needBoss?: boolean; readonly mapId?: number },
+): string | undefined {
+    for (const name of mapArtLookupKeys(mapName, options?.needBoss ?? false)) {
+        const key = catalog.byName[name];
+        if (key && catalog.files[key]?.file) {
+            return catalog.files[key].file;
+        }
+    }
+    if (typeof options?.mapId === "number") {
+        const key = catalog.byMapId?.[`${options.mapId}`];
+        if (key && catalog.files[key]?.file) {
+            return catalog.files[key].file;
+        }
+    }
+    return undefined;
+}
+
 /**
  * Project shop + stage acquisition channels for a gacha coin.
  *

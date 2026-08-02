@@ -1,5 +1,7 @@
 const SHOP_API = "https://jftse.com/jftse-restservice/api/shop";
 const ITEM_ART_FILE = /^[A-Za-z0-9_]+\.webp$/;
+const MAP_ART_FILE = /^[A-Za-z0-9_]+\.webp$/;
+const BOSS_ART_FILE = /^[A-Za-z0-9_]+\.webp$/;
 
 export async function proxyShopRequest(
     request: Request,
@@ -35,6 +37,9 @@ if (import.meta.main) {
                 "./assets/fantasy-tennis-island.webp",
             ),
             "/assets/item-art-map.json": Bun.file("./assets/item-art-map.json"),
+            "/assets/map-art-map.json": Bun.file("./assets/map-art-map.json"),
+            "/assets/stage-bosses.json": Bun.file("./assets/stage-bosses.json"),
+            "/assets/boss-art-map.json": Bun.file("./assets/boss-art-map.json"),
             "/assets/shop-nobuy-indexes.json": Bun.file("./assets/shop-nobuy-indexes.json"),
             "/assets/product-stage-drops.json": Bun.file("./assets/product-stage-drops.json"),
             "/assets/item-art/:file": request => {
@@ -43,6 +48,20 @@ if (import.meta.main) {
                     return new Response("Not found", { status: 404 });
                 }
                 return new Response(Bun.file(`./assets/item-art/${file}`));
+            },
+            "/assets/map-art/:file": request => {
+                const file = request.params.file;
+                if (!MAP_ART_FILE.test(file)) {
+                    return new Response("Not found", { status: 404 });
+                }
+                return new Response(Bun.file(`./assets/map-art/${file}`));
+            },
+            "/assets/boss-art/:file": request => {
+                const file = request.params.file;
+                if (!BOSS_ART_FILE.test(file)) {
+                    return new Response("Not found", { status: 404 });
+                }
+                return new Response(Bun.file(`./assets/boss-art/${file}`));
             },
         },
         fetch() {

@@ -188,6 +188,34 @@ test("gacha details omit the redundant source-name link", async () => {
     expect(renderer).not.toContain('createHTML(["a", gacha.name])');
 });
 
+test("set details omit the redundant set-name link", async () => {
+    const renderer = await projectFile("./itemLookup.ts");
+
+    expect(renderer).toContain("function createSetSourcePopup");
+    expect(renderer).toContain(
+        "return createPopupLink(itemSource.item.name_en, contentTable);",
+    );
+    expect(renderer).not.toContain(
+        'createHTML(["a", itemSource.item.name_en, contentTable])',
+    );
+});
+
+test("open dialog locks background scroll", async () => {
+    const [renderer, css] = await Promise.all([
+        projectFile("./itemLookup.ts"),
+        projectFile("./style.css"),
+    ]);
+
+    expect(renderer).toContain('document.documentElement.classList.add("dialog-open")');
+    expect(renderer).toContain(
+        'document.documentElement.classList.remove("dialog-open")',
+    );
+    expect(css).toMatch(/html\.dialog-open[\s\S]*overflow:\s*hidden/);
+    expect(css).toMatch(
+        /html\.dialog-open \.control-rail[\s\S]*overflow:\s*hidden/,
+    );
+});
+
 test("gacha details table omits Character and collapses same-name equipment", async () => {
     const renderer = await projectFile("./itemLookup.ts");
 

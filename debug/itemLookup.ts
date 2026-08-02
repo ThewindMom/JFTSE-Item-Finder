@@ -2,13 +2,28 @@ import { createHTML } from './html';
 import {
     prettyGuardianMapName,
     projectGachaAcquisitionChannels,
+    resolveMapArtFile,
     stageChannelLabel,
+    stageTitleName,
     type GachaSourceInput,
+    type MapArtCatalog,
 } from './gachaAcquisition';
 import { priorityStatHeaderDisplay } from './priorityStatHeaders';
+import {
+    projectStageBosses,
+    type StageBossCatalog,
+    type StageBossProjection,
+} from './stageBosses';
 
 export { priorityStatHeaderDisplay } from './priorityStatHeaders';
 export type { PriorityStatHeaderDisplay } from './priorityStatHeaders';
+export {
+    resolveMapArtFile,
+    stageTitleName,
+} from './gachaAcquisition';
+export {
+    projectStageBosses,
+} from './stageBosses';
 
 export const characters = ["Niki", "LunLun", "Lucy", "Shua", "Dhanpir", "Pochi", "Al"] as const;
 export type Character = typeof characters[number];
@@ -223,10 +238,25 @@ export class Gacha {
 
     add(item: Item, probability: number, character: Character, quantity_min: number, quantity_max: number) {
         if (item.character && item.character !== character) {
-            //console.info(`Item ${item.id} from gacha "${this.name}" ${this.gacha_index} has wrong character`);
+            // Lottery files list every character's gear under each LotteryItem_* block.
+            // Route the entry to the item's owning character so filters stay meaningful.
             character = item.character;
         }
-        this.shop_items.get(character)!.set(item, [probability, quantity_min, quantity_max]);
+        const map = this.shop_items.get(character)!;
+        const previous = map.get(item);
+        // Same Item can appear once per character-block (e.g. 7× Dragon Armor at 1%).
+        // Accumulate ChansPer instead of overwriting — otherwise rates stay stuck at 1%
+        // while character_probability still sums to 100 (map tickets ≪ pool total).
+        if (previous) {
+            map.set(item, [
+                previous[0] + probability,
+                Math.min(previous[1], quantity_min),
+                Math.max(previous[2], quantity_max),
+            ]);
+        }
+        else {
+            map.set(item, [probability, quantity_min, quantity_max]);
+        }
         this.character_probability.set(character, probability + (this.character_probability.get(character) || 0));
     }
 
@@ -271,6 +301,14 @@ type ItemArtMap = {
     sheets: Record<string, ItemArtSheet>;
 };
 let itemArtMap: ItemArtMap = { items: {}, lotteries: {}, sheets: {} };
+let mapArtMap: MapArtCatalog = { files: {}, byName: {} };
+let stageBossCatalog: StageBossCatalog = { bosses: {}, guardians: {}, stages: {} };
+type BossArtCatalog = {
+    readonly byBossId?: Readonly<Record<string, string>>;
+    readonly byResId?: Readonly<Record<string, string>>;
+    readonly files?: Readonly<Record<string, { readonly file: string }>>;
+};
+let bossArtCatalog: BossArtCatalog = {};
 
 function prettyNumber(n: number, digits: number) {
     let s = n.toFixed(digits);
@@ -594,6 +632,9 @@ function parseApiShopData(data: string) {
                 ),
             );
             const gachaItem = new Item();
+            // Product index is the shop_items / gachas key — required so reward tiles
+            // can resolve coin art with gachas.get(item.id) the same way the table does.
+            gachaItem.id = apiItem.productIndex;
             gachaItem.name_en = apiItem.name;
             shop_items.set(apiItem.productIndex, gachaItem);
             if (purchasable) {
@@ -602,6 +643,7 @@ function parseApiShopData(data: string) {
         }
         else {
             const otherItem = new Item();
+            otherItem.id = apiItem.productIndex;
             otherItem.name_en = apiItem.name;
             shop_items.set(apiItem.productIndex, otherItem);
         }
@@ -824,6 +866,9 @@ export async function downloadItems() {
     // Boss/map drops from S_Relationships (beyond GuardianStages Rewards lists).
     const productStageDropsData = download("/assets/product-stage-drops.json");
     const itemArtData = download("/assets/item-art-map.json");
+    const mapArtData = download("/assets/map-art-map.json");
+    const stageBossData = download("/assets/stage-bosses.json");
+    const bossArtData = download("/assets/boss-art-map.json");
     const max_shop_pages = 20; //currently need only 10, should be enough
     const shopURL = "/api/shop?size=1000&page=";
     const shopDatas = [...Array(max_shop_pages).keys()].map(n => download(`${shopURL}${n}`));
@@ -831,6 +876,24 @@ export async function downloadItems() {
     const guardianData = download(guardianURL);
     parseItemData(await itemData);
     itemArtMap = JSON.parse(await itemArtData) as ItemArtMap;
+    try {
+        mapArtMap = JSON.parse(await mapArtData) as MapArtCatalog;
+    } catch (e) {
+        console.warn(`Failed loading map art catalog: ${e}`);
+        mapArtMap = { files: {}, byName: {} };
+    }
+    try {
+        stageBossCatalog = JSON.parse(await stageBossData) as StageBossCatalog;
+    } catch (e) {
+        console.warn(`Failed loading stage boss catalog: ${e}`);
+        stageBossCatalog = { bosses: {}, guardians: {}, stages: {} };
+    }
+    try {
+        bossArtCatalog = JSON.parse(await bossArtData) as BossArtCatalog;
+    } catch (e) {
+        console.warn(`Failed loading boss art catalog: ${e}`);
+        bossArtCatalog = {};
+    }
     try {
         const nobuyJson = JSON.parse(await shopNobuyData) as {
             productIndexes?: unknown;
@@ -928,6 +991,14 @@ function deletableItem(item: Item, character?: Character) {
     ]);
 }
 
+function lockBackgroundScroll() {
+    document.documentElement.classList.add("dialog-open");
+}
+
+function unlockBackgroundScroll() {
+    document.documentElement.classList.remove("dialog-open");
+}
+
 function showDialog(
     trigger: HTMLButtonElement,
     label: string,
@@ -939,8 +1010,9 @@ function showDialog(
         return;
     }
     if (dialog) {
-        dialog.close();
-        dialog.remove();
+        const previous = dialog;
+        previous.close();
+        previous.remove();
     }
     const closeButton = createHTML([
         "button",
@@ -963,13 +1035,19 @@ function showDialog(
         trigger.setAttribute("aria-expanded", "false");
         dialog?.remove();
         dialog = undefined;
+        unlockBackgroundScroll();
         trigger.focus();
     }, { once: true });
     topDiv.appendChild(dialog);
     dialog.showModal();
+    lockBackgroundScroll();
 }
 
-export function createPopupLink(text: string, content: HTMLElement | string | (HTMLElement | string)[]) {
+export function createPopupLink(
+    text: string,
+    content: HTMLElement | string | (HTMLElement | string)[],
+    dialogClass?: string,
+) {
     const button = createHTML([
         "button",
         {
@@ -982,7 +1060,7 @@ export function createPopupLink(text: string, content: HTMLElement | string | (H
     ]);
     button.addEventListener("click", (event) => {
         event.stopPropagation();
-        showDialog(button, `${text} details`, content);
+        showDialog(button, `${text} details`, content, dialogClass);
     });
     return button;
 }
@@ -1121,36 +1199,250 @@ function createSetSourcePopup(item: Item, itemSource: ShopItemSource) {
     for (const inner_item of itemSource.items) {
         contentTable.appendChild(createHTML(["tr", inner_item === item ? { class: "highlighted" } : "", ["td", inner_item.name_en]]));
     }
-    return createPopupLink(itemSource.item.name_en, [createHTML(["a", itemSource.item.name_en, contentTable])]);
+    // Dialog aria-label already carries the set name — only show the contents table.
+    return createPopupLink(itemSource.item.name_en, contentTable);
 }
 
-function prettyTime(seconds: number) {
-    return `${Math.floor(seconds / 60)}:${`${seconds % 60}`.padStart(2, "0")}`;
+function resolveBossArtFile(bossId: number, resId?: number): string | undefined {
+    const byId = bossArtCatalog.byBossId?.[`${bossId}`];
+    if (byId) {
+        return byId;
+    }
+    if (typeof resId === "number") {
+        return bossArtCatalog.byResId?.[`${resId}`];
+    }
+    return undefined;
+}
+
+function createBossPortrait(projection: StageBossProjection): HTMLElement {
+    const primary = projection.bosses[0];
+    const bossName = primary?.name ?? (projection.isBossStage ? "Boss" : "Guardian");
+    const file = primary
+        ? resolveBossArtFile(primary.id, primary.resId)
+        : undefined;
+    if (file) {
+        return createHTML([
+            "div",
+            { class: "stage-details__portrait", "data-has-boss-art": "true" },
+            [
+                "img",
+                {
+                    class: "stage-details__portrait-image",
+                    src: `/assets/boss-art/${encodeURIComponent(file)}`,
+                    alt: `Boss artwork for ${bossName}`,
+                    width: "128",
+                    height: "128",
+                    decoding: "async",
+                },
+            ],
+        ]);
+    }
+    return createHTML([
+        "div",
+        {
+            class: "stage-details__portrait stage-details__portrait--fallback",
+            role: "img",
+            "aria-label": `Boss artwork unavailable for ${bossName}`,
+            "data-has-boss-art": "false",
+        },
+        ["span", { "aria-hidden": "true" }, bossName.slice(0, 1).toUpperCase()],
+    ]);
+}
+
+/**
+ * Resolve the Gacha behind a shop product Item (stage rewards are shop_items entries).
+ * Lottery items used to leave item.id at 0 — still support reverse lookup for those.
+ */
+export function findGachaForShopItem(item: Item): Gacha | undefined {
+    if (item.id !== 0) {
+        const byId = gachas.get(item.id);
+        if (byId) {
+            return byId;
+        }
+    }
+    for (const [shopIndex, gacha] of gachas) {
+        if (shop_items.get(shopIndex) === item) {
+            return gacha;
+        }
+    }
+    for (const gacha of gachas.values()) {
+        if (gacha.name === item.name_en) {
+            return gacha;
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Reward tile art: gacha coins use the same lottery sprite as the results table
+ * (`createGachaCoinArt`). Equipment uses Item_Parts sheet cells.
+ */
+export function createStageRewardArt(item: Item) {
+    const gacha = findGachaForShopItem(item);
+    if (gacha) {
+        // Same path as createGachaSourceSummary / gacha table column.
+        const coin = createGachaCoinArt(gacha);
+        // Keep reward-row sizing hooks without losing the circular coin look.
+        const classes = typeof coin.className === "string" ? coin.className : "";
+        if (!classes.split(/\s+/).includes("stage-details__reward-art")) {
+            coin.className = `${classes} stage-details__reward-art stage-details__reward-art--coin`.trim();
+        }
+        return coin;
+    }
+    return createItemArt(item, 40, "stage-details__reward-art");
+}
+
+function createStageBossList(projection: StageBossProjection) {
+    if (projection.bossNames.length === 0 && projection.sideGuardianNames.length === 0) {
+        return undefined;
+    }
+    const bossItems = projection.bosses.map((boss) => {
+        const file = resolveBossArtFile(boss.id, boss.resId);
+        const thumb = file
+            ? createHTML([
+                "img",
+                {
+                    class: "stage-details__boss-thumb",
+                    src: `/assets/boss-art/${encodeURIComponent(file)}`,
+                    alt: "",
+                    width: "40",
+                    height: "40",
+                    decoding: "async",
+                    "aria-hidden": "true",
+                },
+            ])
+            : createHTML([
+                "span",
+                { class: "stage-details__boss-thumb stage-details__boss-thumb--fallback", "aria-hidden": "true" },
+                boss.name.slice(0, 1),
+            ]);
+        return createHTML([
+            "li",
+            { class: "stage-details__boss-item stage-details__boss-item--primary" },
+            thumb,
+            ["span", { class: "stage-details__boss-role" }, "Boss"],
+            ["span", { class: "stage-details__boss-name" }, boss.name],
+        ]);
+    });
+    // GuardiansLeft/Right/Middle are a spawn *pool* — one left + one right at fight time.
+    const sideNote = projection.sideGuardianNames.length > 0
+        ? createHTML([
+            "div",
+            { class: "stage-details__side-pool" },
+            [
+                "p",
+                { class: "stage-details__side-pool-label" },
+                `Side companions (pool of ${projection.sideGuardianNames.length})`,
+            ],
+            [
+                "p",
+                { class: "stage-details__side-pool-names" },
+                projection.sideGuardianNames.join(" · "),
+            ],
+            [
+                "p",
+                { class: "stage-details__side-pool-hint" },
+                "One left and one right spawn with the boss; the rest are possible draws.",
+            ],
+        ])
+        : undefined;
+    const section = createHTML([
+        "section",
+        { class: "stage-details__section", "aria-labelledby": "stage-details-bosses" },
+        [
+            "h3",
+            { id: "stage-details-bosses" },
+            projection.bossNames.length > 1 ? "Bosses" : "Boss",
+        ],
+        [
+            "ul",
+            { class: "stage-details__bosses" },
+            ...bossItems,
+        ],
+    ]);
+    if (sideNote) {
+        section.appendChild(sideNote);
+    }
+    return section;
+}
+
+/**
+ * Stage dossier for Guardian / Boss map chips: boss portrait, JFTSE boss names,
+ * readable facts, and reward list with the same art as the results table.
+ */
+export function createStageDetailsContent(item: Item, itemSource: GuardianItemSource) {
+    const isBoss = itemSource.need_boss;
+    const title = stageTitleName(itemSource.guardian_map);
+    const eyebrow = isBoss ? "Boss stage" : "Guardian stage";
+    const bossProjection = projectStageBosses(
+        itemSource.guardian_map,
+        isBoss,
+        stageBossCatalog,
+    );
+    const rewards = itemSource.items.length > 0
+        ? createHTML([
+            "ul",
+            { class: "stage-details__rewards" },
+            ...itemSource.items.map((reward) => createHTML([
+                "li",
+                {
+                    class: reward === item
+                        ? "stage-details__reward stage-details__reward--current"
+                        : "stage-details__reward",
+                },
+                createStageRewardArt(reward),
+                ["span", { class: "stage-details__reward-name" }, reward.name_en],
+                ...(reward === item
+                    ? [createHTML(["span", { class: "stage-details__reward-badge" }, "This item"])]
+                    : []),
+            ])),
+        ])
+        : createHTML(["p", { class: "stage-details__empty" }, "No listed rewards for this stage."]);
+
+    const bossSection = createStageBossList(bossProjection);
+
+    const identity = createHTML([
+        "div",
+        { class: "stage-details__identity" },
+        ["span", { class: "stage-details__eyebrow" }, eyebrow],
+        ["h2", title],
+    ]);
+
+    const header = createHTML([
+        "header",
+        { class: "stage-details__header" },
+        createBossPortrait(bossProjection),
+        identity,
+    ]);
+
+    const article = createHTML([
+        "article",
+        {
+            class: isBoss
+                ? "stage-details stage-details--boss"
+                : "stage-details stage-details--guardian",
+        },
+        header,
+    ]);
+    if (bossSection) {
+        article.appendChild(bossSection);
+    }
+    article.appendChild(createHTML([
+        "section",
+        { class: "stage-details__section", "aria-labelledby": "stage-details-rewards" },
+        ["h3", { id: "stage-details-rewards" }, "Rewards"],
+        rewards,
+    ]));
+    return article;
 }
 
 function createGuardianPopup(item: Item, itemSource: GuardianItemSource) {
     const mapLabel = stageChannelLabel(itemSource.guardian_map, itemSource.need_boss);
-    const content = [
-        `Guardian map ${prettyGuardianMapName(itemSource.guardian_map)}`,
-        createHTML(
-            [
-                "ul", { class: "layout" },
-                ["li", "Items:",
-                    ["ul", { class: "layout" },
-                        ...itemSource.items.reduce(
-                            (curr, reward_item) =>
-                                [...curr, createHTML(["li", { class: reward_item === item ? "highlighted" : "" }, reward_item.name_en])],
-                            [] as (HTMLElement | string)[]
-                        ),
-                    ],
-                ],
-                ["li", `Requires boss: ${itemSource.need_boss ? "Yes" : "No"}`],
-                ...(itemSource.boss_time > 0 ? [createHTML(["li", `Boss time: ${prettyTime(itemSource.boss_time)}`])] : []),
-                ["li", `EXP multiplier: ${itemSource.xp}`],
-            ]
-        )
-    ];
-    return createPopupLink(mapLabel, content);
+    return createPopupLink(
+        mapLabel,
+        createStageDetailsContent(item, itemSource),
+        "stage-details-dialog",
+    );
 }
 
 function itemSourcesToElementArray(

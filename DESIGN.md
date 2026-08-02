@@ -305,7 +305,20 @@ The source cell identifies every acquisition path without shop economics chrome:
      Multi-stage coins show every unique map chip.
    - **Non-boss Guardian stages**: pill with the pretty map name only (for example `Temple`,
      `Machine City`), using `--jf-source-guardian`.
-   - Stage chips open the existing Guardian detail dialog (rewards, boss timer, EXP multiplier).
+   - Stage chips open a **stage details dossier** (`.stage-details-dialog`), not a flat text list:
+     - **Boss portrait** (not map art): face crops from client `BossGuardian*` mesh textures in
+       `assets/boss-art/`, keyed by BossGuardian id / ResID via `assets/boss-art-map.json`.
+     - Identity header: portrait + eyebrow `Boss stage` / `Guardian stage`, title without
+       redundant `Boss` suffix, channel label (`Boss · Atlantis`), boss name summary.
+     - **Boss names** from JFTSE `GuardianStages.json` `BossGuardian` → `BossGuardianInfo_Ini3.xml`
+       (`assets/stage-bosses.json`). Multi-boss stages supported via `bossIds[]`.
+     - **Side companion pool** from `GuardiansLeft` / `Middle` / `Right` (one left + one right
+       spawn with the boss).
+     - Facts grid: Boss required, Boss time, EXP multiplier.
+     - Rewards: same art as the results table — **gacha coins use lottery sprites**
+       (`createStageRewardArt` → `itemArtMap.lotteries[gacha_index]`), equipment uses item sheets.
+       Highlighted reward gets a `This item` badge.
+     - Width `min(92vw, 560px)`; close is a normal footer control.
 3. **Is the coin sold right now?**
    - Purchasable → `Gold` / `AP`.
    - Catalog-listed Nobuy → quiet `Not for sale` shop-status (even when stage drops also exist).
@@ -344,6 +357,19 @@ that descriptor to a sprite sheet, and `Res/GuiRes/Item*.res` contains the origi
 - Never infer artwork from an item name or fabricate item-specific imagery.
 - Never use generated production artwork.
 - Unknown or broken mappings use the real item category as a fixed fallback:
+
+## Stage / boss art policy
+
+Stage detail dialogs show a **boss portrait**, not a map banner:
+
+1. **Boss portraits**: face crops from `Res/Player/BossGuardian*/Mesh.res` textures →
+   `assets/boss-art/*.webp`, catalogued in `assets/boss-art-map.json` by BossGuardian id and ResID.
+2. **Boss identity** still comes from `GuardianStages.json` + `BossGuardianInfo_Ini3.xml`
+   (`assets/stage-bosses.json`).
+3. **Reward art** must match the results table: gacha lottery sprites for coin products,
+   item sheet cells for equipment. Never fall back when lottery art exists for the gacha index.
+4. Map-select thumbs (`assets/map-art/`) may remain on disk for other surfaces, but the stage
+   dialog does **not** use them as the hero image.
 
 ```text
 HAT
