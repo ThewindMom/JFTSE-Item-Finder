@@ -47,6 +47,8 @@
     --jf-space-10: 40px;
     --jf-space-12: 48px;
 
+    --jf-shell-max: 1920px;
+
     --jf-radius-sm: 4px;
     --jf-radius-md: 8px;
     --jf-radius-lg: 12px;
@@ -181,7 +183,7 @@ summary:focus-visible,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: min(100%, 1440px);
+    width: min(100%, var(--jf-shell-max));
     min-height: 56px;
     margin-inline: auto;
     padding-inline: var(--jf-space-6);
@@ -254,7 +256,7 @@ summary:focus-visible,
     min-height: 216px;
     align-items: center;
     justify-content: space-between;
-    width: min(100%, 1440px);
+    width: min(100%, var(--jf-shell-max));
     margin: var(--jf-space-5) auto;
     padding: var(--jf-space-8);
     overflow: hidden;
@@ -393,7 +395,7 @@ dialog button:hover {
     grid-template-columns: minmax(18rem, 20rem) minmax(0, 1fr);
     grid-template-areas: "rail results";
     gap: var(--jf-space-5);
-    width: min(100%, 1440px);
+    width: min(100%, var(--jf-shell-max));
     margin-inline: auto;
     padding: 0 var(--jf-space-6) var(--jf-space-10);
     align-items: start;
@@ -1482,7 +1484,7 @@ dialog button {
     display: flex;
     justify-content: space-between;
     gap: var(--jf-space-4);
-    width: min(100%, 1440px);
+    width: min(100%, var(--jf-shell-max));
     margin-inline: auto;
     padding: var(--jf-space-5) var(--jf-space-6) var(--jf-space-8);
     border-top: 1px solid var(--jf-border-subtle);

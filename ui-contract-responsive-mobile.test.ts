@@ -66,3 +66,14 @@ test("shares one responsive modal width across dialog families", async () => {
     expect(css).not.toMatch(/\.item-details-dialog[\s\S]*width:\s*min\(92vw,\s*760px\)/);
     expect(css).not.toMatch(/^dialog\s*\{[\s\S]*width:\s*min\(92vw,\s*640px\)/m);
 });
+
+test("uses a shared wide-screen shell cap on every page band", async () => {
+    const css = await projectFile("./style.css");
+    const shellWidthRules = css.match(
+        /width:\s*min\(100%,\s*var\(--jf-shell-max\)\)/g,
+    );
+
+    expect(css).toContain("--jf-shell-max: 1920px");
+    expect(shellWidthRules).toHaveLength(4);
+    expect(css).not.toContain("width: min(100%, 1440px)");
+});

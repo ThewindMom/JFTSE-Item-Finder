@@ -112,6 +112,8 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
   --jf-space-10: 40px;
   --jf-space-12: 48px;
 
+  --jf-shell-max: 1920px;
+
   --jf-radius-sm: 4px;
   --jf-radius-md: 8px;
   --jf-radius-lg: 12px;
@@ -156,7 +158,7 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
 
 ### Desktop (1200px and wider)
 
-- Content maximum width: 1440px; page padding: 24px; app bar: 56px.
+- Content maximum width: 1920px; page padding: 24px; app bar: 56px.
 - Two-part workspace: `minmax(18rem, 20rem) minmax(0, 1fr)`.
 - The refinement rail stacks essential filters and collapsed ranking controls.
 - Gap: 20px. Results own the remaining width and always have `min-width: 0`.
