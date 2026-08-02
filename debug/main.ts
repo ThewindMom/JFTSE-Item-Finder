@@ -95,20 +95,156 @@ let dragged: HTMLElement;
 const dragSeparatorLine = createHTML(["hr", { id: "dragOverBar" }]);
 let dragHighlightedElement: HTMLElement | undefined;
 
+function createPriorityMoveIcon(direction: "up" | "down"): SVGSVGElement {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "priority-move__icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute(
+        "d",
+        direction === "up" ? "M6 14.5 12 8.5l6 6" : "M6 9.5 12 15.5l6-6",
+    );
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "2.25");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.append(path);
+    return svg;
+}
+
+/** Read ranking key from the label node so move controls never pollute stat text. */
+export function getPriorityStatLabel(item: Element): string {
+    const label = item.querySelector(".priority-stat-label");
+    if (label?.textContent) {
+        return label.textContent.trim();
+    }
+    return (item.textContent ?? "").trim();
+}
+
+function setPriorityStatLabel(item: HTMLElement, stat: string): void {
+    const label = item.querySelector(".priority-stat-label");
+    if (label instanceof HTMLElement) {
+        label.textContent = stat;
+    }
+    else {
+        item.textContent = stat;
+    }
+    const up = item.querySelector(".priority-move-up");
+    const down = item.querySelector(".priority-move-down");
+    if (up instanceof HTMLButtonElement) {
+        up.setAttribute("aria-label", `Move ${stat} higher in priority`);
+        up.title = `Move ${stat} up`;
+    }
+    if (down instanceof HTMLButtonElement) {
+        down.setAttribute("aria-label", `Move ${stat} lower in priority`);
+        down.title = `Move ${stat} down`;
+    }
+}
+
+export function createPriorityListItem(stat: string): HTMLLIElement {
+    const up = createHTML([
+        "button",
+        {
+            type: "button",
+            class: "priority-move priority-move-up",
+            "aria-label": `Move ${stat} higher in priority`,
+            title: `Move ${stat} up`,
+        },
+    ]);
+    up.append(createPriorityMoveIcon("up"));
+    const down = createHTML([
+        "button",
+        {
+            type: "button",
+            class: "priority-move priority-move-down",
+            "aria-label": `Move ${stat} lower in priority`,
+            title: `Move ${stat} down`,
+        },
+    ]);
+    down.append(createPriorityMoveIcon("down"));
+
+    return createHTML([
+        "li",
+        { class: "dropzone", draggable: "true" },
+        ["span", { class: "priority-stat-label" }, stat],
+        createHTML(["span", { class: "priority-move-controls" }, up, down]),
+    ]);
+}
+
+function priorityListItems(list: HTMLOListElement): HTMLLIElement[] {
+    return Array.from(list.children).filter(
+        (node): node is HTMLLIElement => node instanceof HTMLLIElement && node.classList.contains("dropzone"),
+    );
+}
+
+function syncPriorityMoveButtonState(list: HTMLOListElement): void {
+    const items = priorityListItems(list);
+    items.forEach((item, index) => {
+        const up = item.querySelector(".priority-move-up");
+        const down = item.querySelector(".priority-move-down");
+        if (up instanceof HTMLButtonElement) {
+            up.disabled = index === 0;
+        }
+        if (down instanceof HTMLButtonElement) {
+            down.disabled = index === items.length - 1;
+        }
+    });
+}
+
+function movePriorityListItem(item: HTMLLIElement, direction: "up" | "down"): void {
+    const list = item.parentElement;
+    if (!(list instanceof HTMLOListElement)) {
+        return;
+    }
+    let sibling: Element | null = direction === "up" ? item.previousElementSibling : item.nextElementSibling;
+    while (sibling && !(sibling instanceof HTMLLIElement && sibling.classList.contains("dropzone"))) {
+        sibling = direction === "up" ? sibling.previousElementSibling : sibling.nextElementSibling;
+    }
+    if (!(sibling instanceof HTMLLIElement)) {
+        return;
+    }
+    if (direction === "up") {
+        sibling.before(item);
+    }
+    else {
+        sibling.after(item);
+    }
+    syncPriorityMoveButtonState(list);
+    updateResults();
+}
+
 function applyDragDrop() {
-    document.addEventListener("dragstart", ({ target }) => {
+    document.addEventListener("dragstart", (event) => {
+        const { target } = event;
         if (!(target instanceof HTMLElement)) {
             return;
         }
-        dragged = target;
+        if (target.closest(".priority-move, .priority-move-controls")) {
+            event.preventDefault();
+            return;
+        }
+        const row = target.classList.contains("dropzone")
+            ? target
+            : target.closest("#priority_list > li.dropzone");
+        if (!(row instanceof HTMLElement)) {
+            return;
+        }
+        dragged = row;
     });
 
     document.addEventListener("dragover", (event) => {
-        if (!(event.target instanceof HTMLElement)) {
+        if (!(event.target instanceof Element)) {
             return;
         }
-        if (event.target.className === "dropzone") {
-            const targetRect = event.target.getBoundingClientRect();
+        const dropzone = event.target.closest("#priority_list > li.dropzone");
+        if (dropzone instanceof HTMLElement) {
+            const targetRect = dropzone.getBoundingClientRect();
             const y = event.clientY - targetRect.top;
             const height = targetRect.height;
             enum Position {
@@ -124,7 +260,7 @@ function applyDragDrop() {
                         dragHighlightedElement = undefined;
                     }
                     dragSeparatorLine.hidden = false;
-                    event.target.before(dragSeparatorLine);
+                    dropzone.before(dragSeparatorLine);
                     break;
                 case Position.below:
                     if (dragHighlightedElement) {
@@ -132,17 +268,17 @@ function applyDragDrop() {
                         dragHighlightedElement = undefined;
                     }
                     dragSeparatorLine.hidden = false;
-                    event.target.after(dragSeparatorLine);
+                    dropzone.after(dragSeparatorLine);
                     break;
                 case Position.on:
                     dragSeparatorLine.hidden = true;
                     if (dragHighlightedElement) {
                         dragHighlightedElement.classList.remove("drophover");
                     }
-                    if (dragged === event.target) {
+                    if (dragged === dropzone) {
                         break;
                     }
-                    dragHighlightedElement = event.target;
+                    dragHighlightedElement = dropzone;
                     dragHighlightedElement.classList.add("drophover");
                     break;
             }
@@ -155,11 +291,15 @@ function applyDragDrop() {
             dragged.remove();
             dragSeparatorLine.after(dragged);
             dragSeparatorLine.hidden = true;
+            const list = dragged.parentElement;
+            if (list instanceof HTMLOListElement) {
+                syncPriorityMoveButtonState(list);
+            }
             updateResults();
             return;
         }
         dragSeparatorLine.hidden = true;
-        if (!(target instanceof HTMLElement)) {
+        if (!(target instanceof Element)) {
             return;
         }
         if (dragHighlightedElement) {
@@ -169,19 +309,59 @@ function applyDragDrop() {
             if (!(dropTarget instanceof HTMLLIElement)) {
                 return;
             }
-            dropTarget.textContent += `+${dragged.textContent}`;
+            const combined = `${getPriorityStatLabel(dropTarget)}+${getPriorityStatLabel(dragged)}`;
+            setPriorityStatLabel(dropTarget, combined);
             dragged.remove();
+            const list = dropTarget.parentElement;
+            if (list instanceof HTMLOListElement) {
+                syncPriorityMoveButtonState(list);
+            }
         }
-        if (target === dragged) {
-            const stats = dragged.textContent!.split("+");
-            dragged.textContent = stats.shift()!;
-            dragged.after(...stats.map(stat => createHTML(["li", { class: "dropzone", draggable: "true" }, stat])));
+        const dropRow = target instanceof HTMLElement && target.classList.contains("dropzone")
+            ? target
+            : target.closest("#priority_list > li.dropzone");
+        if (dropRow === dragged && dragged instanceof HTMLLIElement) {
+            const stats = getPriorityStatLabel(dragged).split("+");
+            setPriorityStatLabel(dragged, stats.shift()!);
+            dragged.after(...stats.map(stat => createPriorityListItem(stat)));
+            const list = dragged.parentElement;
+            if (list instanceof HTMLOListElement) {
+                syncPriorityMoveButtonState(list);
+            }
         }
         updateResults();
     });
 }
 
 applyDragDrop();
+
+function hydratePriorityListControls(): void {
+    const priorityList = document.getElementById("priority_list");
+    if (!(priorityList instanceof HTMLOListElement)) {
+        return;
+    }
+    for (const item of priorityListItems(priorityList)) {
+        if (!item.querySelector(".priority-stat-label")) {
+            const stat = (item.textContent ?? "").trim();
+            if (!stat) {
+                continue;
+            }
+            item.replaceWith(createPriorityListItem(stat));
+            continue;
+        }
+        // Static HTML ships empty control shells; fill icons without losing labels.
+        for (const button of item.querySelectorAll(".priority-move")) {
+            if (!(button instanceof HTMLButtonElement) || button.querySelector("svg")) {
+                continue;
+            }
+            const direction = button.classList.contains("priority-move-up") ? "up" : "down";
+            button.append(createPriorityMoveIcon(direction));
+        }
+    }
+    syncPriorityMoveButtonState(priorityList);
+}
+
+hydratePriorityListControls();
 
 function compare(lhs: number, rhs: number): -1 | 0 | 1 {
     if (lhs === rhs) {
@@ -537,11 +717,9 @@ function updateResults() {
     if (!(priorityList instanceof HTMLOListElement)) {
         throw "Internal error";
     }
-    const priorityStats = Array
-        .from(priorityList.childNodes)
-        .filter(node => !node.textContent?.includes('\n'))
-        .filter(node => node.textContent)
-        .map(node => node.textContent!);
+    const priorityStats = priorityListItems(priorityList)
+        .map(node => getPriorityStatLabel(node))
+        .filter(stat => stat.length > 0);
     {
         for (const stat of priorityStats) {
             const stats = stat.split("+");
@@ -589,6 +767,80 @@ function updateResults() {
             ? "No items match these filters."
             : `${resultRows} matching ${resultRows === 1 ? "item" : "items"}`;
     }
+    syncResultsTableScroll();
+}
+
+let resultsTableScrollBound = false;
+let resultsTableWidthObserver: ResizeObserver | undefined;
+let resultsColumnPanRevealed = false;
+
+/** Keep the top column scroller width and scrollLeft aligned with the results table. */
+function syncResultsTableScroll() {
+    const tableScroll = document.getElementById("tableScroll");
+    const tableHScroll = document.getElementById("tableHScroll");
+    const spacer = document.getElementById("tableHScrollSpacer");
+    const columnPan = document.getElementById("tableColumnPan");
+    if (!(tableScroll instanceof HTMLElement)
+        || !(tableHScroll instanceof HTMLElement)
+        || !(spacer instanceof HTMLElement)
+        || !(columnPan instanceof HTMLElement)) {
+        return;
+    }
+
+    if (!resultsTableScrollBound) {
+        resultsTableScrollBound = true;
+        let syncing = false;
+        const mirror = (source: HTMLElement, target: HTMLElement) => {
+            if (syncing) {
+                return;
+            }
+            syncing = true;
+            target.scrollLeft = source.scrollLeft;
+            syncing = false;
+        };
+        tableScroll.addEventListener("scroll", () => {
+            mirror(tableScroll, tableHScroll);
+        }, { passive: true });
+        tableHScroll.addEventListener("scroll", () => {
+            mirror(tableHScroll, tableScroll);
+        }, { passive: true });
+        window.addEventListener("resize", () => {
+            syncResultsTableScroll();
+        }, { passive: true });
+        if (typeof ResizeObserver !== "undefined") {
+            resultsTableWidthObserver = new ResizeObserver(() => {
+                syncResultsTableScroll();
+            });
+            resultsTableWidthObserver.observe(tableScroll);
+        }
+    }
+
+    const table = tableScroll.querySelector("table");
+    if (!(table instanceof HTMLTableElement)) {
+        columnPan.hidden = true;
+        columnPan.classList.remove("is-revealed");
+        spacer.style.width = "0px";
+        return;
+    }
+
+    const contentWidth = Math.max(table.scrollWidth, tableScroll.scrollWidth);
+    spacer.style.width = `${contentWidth}px`;
+    const needsHorizontalScroll = contentWidth > tableScroll.clientWidth + 1;
+    const wasHidden = columnPan.hidden;
+    columnPan.hidden = !needsHorizontalScroll;
+    if (needsHorizontalScroll && !document.activeElement?.isSameNode(tableHScroll)) {
+        tableHScroll.scrollLeft = tableScroll.scrollLeft;
+    }
+    if (needsHorizontalScroll && wasHidden && !resultsColumnPanRevealed) {
+        resultsColumnPanRevealed = true;
+        columnPan.classList.add("is-revealed");
+        window.setTimeout(() => {
+            columnPan.classList.remove("is-revealed");
+        }, 240);
+    }
+    if (!needsHorizontalScroll) {
+        columnPan.classList.remove("is-revealed");
+    }
 }
 
 function setMaxLevelDisplayUpdate() {
@@ -623,15 +875,11 @@ function setDisplayUpdates() {
         throw "Internal error";
     }
     enchantToggle.addEventListener("input", () => {
-        const priorityStatNodes = Array
-            .from(priorityList.childNodes)
-            .filter(node => !node.textContent?.includes('\n'))
-            .filter(node => node.textContent);
-
-        for (const node of priorityStatNodes) {
+        for (const node of priorityListItems(priorityList)) {
             const regex = enchantToggle.checked ? /^((?:Str)|(?:Sta)|(?:Dex)|(?:Will))$/ : /^Max ((?:Str)|(?:Sta)|(?:Dex)|(?:Will))$/;
             const replacer = enchantToggle.checked ? "Max $1" : "$1";
-            node.textContent = node.textContent!.split("+").map(s => s.replace(regex, replacer)).join("+");
+            const next = getPriorityStatLabel(node).split("+").map(s => s.replace(regex, replacer)).join("+");
+            setPriorityStatLabel(node, next);
         }
         updateResults();
     });
@@ -813,28 +1061,51 @@ window.addEventListener("load", async () => {
     if (sort_help instanceof HTMLLegendElement) {
         sort_help.appendChild(createPopupLink(" (?)", createHTML(["p",
             "Reorder the stats to your liking to affect the results list.", ["br"],
-            "Drag a stat up or down to change its importance (for example drag Lob above Charge).", ["br"],
+            "Use the up/down arrows, or drag a stat, to change its importance (for example move Lob above Charge).", ["br"],
             "Drag a stat onto another to combine them (for example Str onto Dex, the results will display Str+Dex).", ["br"],
             "Drag a combined stat onto itself to separate them."])));
     }
 });
 
 document.body.addEventListener('click', (event) => {
-    if (!(event.target instanceof HTMLElement)) {
+    if (!(event.target instanceof Element)) {
         return;
     }
-    if (event.target.className === "item_removal") {
-        if (!event.target.dataset.item_index) {
-            return;
+
+    const priorityUp = event.target.closest(".priority-move-up");
+    if (priorityUp instanceof HTMLButtonElement && !priorityUp.disabled) {
+        const row = priorityUp.closest("#priority_list > li.dropzone");
+        if (row instanceof HTMLLIElement) {
+            movePriorityListItem(row, "up");
         }
-        excluded_item_ids.add(parseInt(event.target.dataset.item_index));
-        updateResults();
+        return;
     }
-    else if (event.target.className === "item_removal_removal") {
-        if (!event.target.dataset.item_index) {
+
+    const priorityDown = event.target.closest(".priority-move-down");
+    if (priorityDown instanceof HTMLButtonElement && !priorityDown.disabled) {
+        const row = priorityDown.closest("#priority_list > li.dropzone");
+        if (row instanceof HTMLLIElement) {
+            movePriorityListItem(row, "down");
+        }
+        return;
+    }
+
+    const excludeButton = event.target.closest(".item_removal");
+    if (excludeButton instanceof HTMLElement) {
+        if (!excludeButton.dataset.item_index) {
             return;
         }
-        excluded_item_ids.delete(parseInt(event.target.dataset.item_index));
+        excluded_item_ids.add(parseInt(excludeButton.dataset.item_index));
+        updateResults();
+        return;
+    }
+
+    const restoreButton = event.target.closest(".item_removal_removal");
+    if (restoreButton instanceof HTMLElement) {
+        if (!restoreButton.dataset.item_index) {
+            return;
+        }
+        excluded_item_ids.delete(parseInt(restoreButton.dataset.item_index));
         updateResults();
     }
 });

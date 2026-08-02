@@ -229,6 +229,9 @@ export function installDomWindowHarness(
         createElement(tag: string) {
             return new ElementNode(tag);
         },
+        createElementNS(_namespace: string, tag: string) {
+            return new ElementNode(tag);
+        },
         getElementById() {
             return null;
         },
