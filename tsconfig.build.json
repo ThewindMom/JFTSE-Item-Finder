@@ -5,6 +5,7 @@
   },
   "exclude": [
     "debug/**",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "test-support/**"
   ]
 }

@@ -58,16 +58,23 @@
                     <h2 id="results-title">Equipment results</h2>
                 </div>
                 <div class="results-panel__meta">
-                    <p id="resultsStatus" class="results-status" aria-live="polite">Loading item data…</p>
+                    <p id="resultsStatus" class="results-status" aria-live="polite">Preparing the lab…</p>
                 </div>
             </div>
 
-            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite">
-                <div class="loading-state__copy">
-                    <label id="loading" for="progressbar">Loading item database…</label>
-                    <span>Fetching equipment, shops, gacha, and Guardian data.</span>
+            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite"
+                aria-busy="true">
+                <div class="loading-state__visual" aria-hidden="true">
+                    <div class="loading-orb">
+                        <span class="loading-orb__ring"></span>
+                        <span class="loading-orb__core"></span>
+                    </div>
                 </div>
-                <progress id="progressbar" max="100" value="0" aria-label="Item data loading progress"></progress>
+                <div class="loading-state__copy">
+                    <label id="loading" for="progressbar">Opening the equipment lab…</label>
+                    <span class="loading-state__detail">Preparing equipment, shops, and rewards.</span>
+                </div>
+                <progress id="progressbar" max="100" value="0" aria-label="Equipment data loading progress"></progress>
             </div>
 
             <div class="table-scroll-shell">
@@ -158,92 +165,92 @@
             <fieldset class="panel priority-panel" id="priority_group">
                 <legend id="priority_legend">Result ranking</legend>
                 <details class="ranking-disclosure">
-                    <summary>Ranking priorities <span>Movement speed first</span></summary>
+                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed first</span></summary>
                     <div class="disclosure-content">
-                        <p class="panel-intro">Drag stats or use the arrows to change which attributes win.</p>
+                        <p class="panel-intro">Use the arrows or drag to set which stats win.</p>
                         <ol reversed id="priority_list" aria-label="Item stat priority">
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Mov Speed</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Mov Speed higher in priority" title="Move Mov Speed up" disabled></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Mov Speed lower in priority" title="Move Mov Speed down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Mov Speed priority" title="Raise Mov Speed" disabled></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Mov Speed priority" title="Lower Mov Speed"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Charge</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Charge higher in priority" title="Move Charge up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Charge lower in priority" title="Move Charge down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Charge priority" title="Raise Charge"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Charge priority" title="Lower Charge"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Lob</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Lob higher in priority" title="Move Lob up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Lob lower in priority" title="Move Lob down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Lob priority" title="Raise Lob"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Lob priority" title="Lower Lob"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Smash</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Smash higher in priority" title="Move Smash up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Smash lower in priority" title="Move Smash down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Smash priority" title="Raise Smash"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Smash priority" title="Lower Smash"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Str</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Str higher in priority" title="Move Str up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Str lower in priority" title="Move Str down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Str priority" title="Raise Str"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Str priority" title="Lower Str"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Dex</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Dex higher in priority" title="Move Dex up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Dex lower in priority" title="Move Dex down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Dex priority" title="Raise Dex"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Dex priority" title="Lower Dex"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Sta</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Sta higher in priority" title="Move Sta up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Sta lower in priority" title="Move Sta down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Sta priority" title="Raise Sta"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Sta priority" title="Lower Sta"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Will</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Will higher in priority" title="Move Will up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Will lower in priority" title="Move Will down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Will priority" title="Raise Will"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Will priority" title="Lower Will"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Serve</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Serve higher in priority" title="Move Serve up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Serve lower in priority" title="Move Serve down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Serve priority" title="Raise Serve"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Serve priority" title="Lower Serve"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Quickslots</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Quickslots higher in priority" title="Move Quickslots up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Quickslots lower in priority" title="Move Quickslots down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Quickslots priority" title="Raise Quickslots"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Quickslots priority" title="Lower Quickslots"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Buffslots</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move Buffslots higher in priority" title="Move Buffslots up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move Buffslots lower in priority" title="Move Buffslots down"></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Buffslots priority" title="Raise Buffslots"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Buffslots priority" title="Lower Buffslots"></button>
                                 </span>
                             </li>
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">HP</span>
                                 <span class="priority-move-controls">
-                                    <button type="button" class="priority-move priority-move-up" aria-label="Move HP higher in priority" title="Move HP up"></button>
-                                    <button type="button" class="priority-move priority-move-down" aria-label="Move HP lower in priority" title="Move HP down" disabled></button>
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise HP priority" title="Raise HP"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower HP priority" title="Lower HP" disabled></button>
                                 </span>
                             </li>
                         </ol>

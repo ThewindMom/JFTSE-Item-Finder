@@ -99,6 +99,10 @@ All component styles use these tokens. One-off colors, spacing, radii, and shado
   --jf-currency-gold-wash: hsl(43 90% 58% / 16%);
   --jf-currency-ap: hsl(278 62% 46%);
   --jf-currency-ap-wash: hsl(278 62% 58% / 14%);
+  --jf-source-boss: hsl(14 72% 40%);
+  --jf-source-boss-wash: hsl(14 78% 48% / 14%);
+  --jf-source-guardian: hsl(166 40% 30%);
+  --jf-source-guardian-wash: hsl(166 36% 42% / 14%);
   --jf-text-on-accent: hsl(194 58% 18%);
   --jf-overlay: hsl(194 48% 15% / 64%);
 
@@ -246,6 +250,11 @@ mode switch exposes `Equipment` and `Gacha` only. Parent checkboxes expose mixed
 - Header: 36px desktop and 44px mobile. Rows: 40px desktop and 44px mobile.
 - Name minimum width: 180px. Numeric cells are right aligned, monospace, and nowrap.
 - Sticky header; sticky name column within the result scroll region.
+- The result scroll region is height-capped so column titles stay pinned while rows scroll.
+- Wide tables expose a framed **column pan** control above the grid: a taller mirrored
+  horizontal scrollbar. The shell and pan share one surface so dual scrollbars read as one
+  comparison tool. The pan is hidden when content fits; first reveal uses a short accent wash
+  (disabled under reduced motion). Mobile card layout hides the pan entirely.
 - Alternating tokenized rows and subtle accent hover/focus.
 - Loading uses `aria-busy` plus polite progress text.
 - Empty state reads `No items match these filters.`
@@ -271,22 +280,58 @@ When exactly one character is represented in the result set, render a `<tfoot>` 
 
 ### Gacha acquisition summaries
 
-The source cell identifies the acquisition path without shop economics chrome:
+The source cell identifies every acquisition path without shop economics chrome:
 
 1. **Which gacha?** Coin artwork (when mapped) plus the gacha identity control that opens the
    detailed odds popup.
-2. **What else acquires this coin or path?** When nested alternatives exist, show an
-   `Alternative` row with those sources.
-3. **What else is in the pool?** Keep complete pool odds in the existing labelled dialog
+2. **How can the coin be obtained?** An acquisition channel strip under the name, projected from
+   the coin product’s shop and Guardian stage sources (not from a single `priceType` flag alone):
+   - **Shop denomination** only when the product is **purchasable** (`enabled` and not
+     Shop_Ini3 `Nobuy`): written `Gold` or `AP` pill using `--jf-currency-gold` /
+     `--jf-currency-ap`. Currency is never color-only.
+   - **Listed but not for sale** (`enabled` + `Nobuy≠0`): written `Not for sale` as a
+     **shop-status label** (`.gacha-shop-status--not-for-sale`) — sentence case, muted,
+     dashed outline, **not** a currency pill and **not** danger red. Currency chips
+     (`Gold` / `AP`) stay reserved for purchasable denominations only. The live shop API
+     omits Nobuy; load product indexes from `assets/shop-nobuy-indexes.json` (extracted
+     from JFTSE `Shop_Ini3.xml`). Do **not** attach a shop cost or imply Gold/AP can buy
+     the coin (Blue Capsule, boss boxes).
+   - **Boss stage drops**: one pill per unique map, labelled `Boss · {pretty map}` with a
+     trailing `Boss` suffix stripped (for example `Boss · Deva Berg`), using `--jf-source-boss`.
+     Sources merge:
+     1. `GuardianStages.json` `Rewards` product lists, and
+     2. JFTSE `S_Relationships` product→boss placement (`assets/product-stage-drops.json`)
+        so coins like Blue Capsule still answer “where do I get this?” when Rewards omit them.
+     Multi-stage coins show every unique map chip.
+   - **Non-boss Guardian stages**: pill with the pretty map name only (for example `Temple`,
+     `Machine City`), using `--jf-source-guardian`.
+   - Stage chips open the existing Guardian detail dialog (rewards, boss timer, EXP multiplier).
+3. **Is the coin sold right now?**
+   - Purchasable → `Gold` / `AP`.
+   - Catalog-listed Nobuy → quiet `Not for sale` shop-status (even when stage drops also exist).
+   - Disabled catalog **and** no stage path → `Gold · Not available` / `AP · Not available`
+     as shop-status (`.gacha-shop-status--not-available`), warning-muted, not a currency fill.
+   - Disabled catalog **with** stage paths → stage chips only.
+4. **What else is in the pool?** Keep complete pool odds in the existing labelled dialog
    (item, chance, expected pulls).
 
-Do not render gacha summary metrics, economics blocks, purchase chips, unit price rows, or
+Pretty map labels split JFTSE CamelCase ids (`MachineCityBoss` → `Machine City Boss`). Boss
+status is always written in the label (`Boss · …`), never color-only.
+
+The Gacha mode results table uses the same summary (art, name control, acquisition strip) for
+every coin so players can scan shop vs stage origins without opening each popup.
+
+Do not render gacha summary metrics, economics blocks, unit price rows, purchase price chips, or
 `Expected spend` copy in the source cell. Do not write coin color labels such as
 `Burgundy-gold coin`; accessible coin art names use the gacha name and shape only
 (for example `{gacha name} coin artwork`).
 
-If a coin has no enabled direct shop source, never invent a price or denomination in the
-summary. Preserve the nested alternative acquisition path when one exists.
+### Not currently in the game
+
+Equipment with no enabled shop source, no enabled gacha path, and no Guardian reward is marked
+with a written `Not in game` badge next to the item name. The badge uses danger-tinted tokens and
+always includes text (never color alone). Turning on `Unavailable items` reveals these rows; the
+badge remains so players can tell them apart from live catalog gear.
 
 ## Item art policy
 
@@ -308,6 +353,20 @@ Official art unavailable
 The fallback is a bordered inset tile with the accessible label
 `Official item art unavailable for {item name}`. It must never look like authentic item art.
 
+## First-load lab prep
+
+While equipment data downloads for the first time, the results panel shows a **lab prep**
+state — not raw network or XML diagnostics.
+
+- Visual: centered `loading-orb` (accent ring + soft core) plus a determinate progress bar.
+- Copy: short phase titles such as “Opening the equipment lab…” / “Checking the live shop…”;
+  detail lines describe player-facing work, never filenames, paths, or `.xml` names.
+- Motion: ring spin (`900ms` linear) and core pulse (`1400ms` ease-in-out) use only
+  `transform` and `opacity`. Under `prefers-reduced-motion: reduce`, both stop; the static
+  orb and progress bar remain as the loading cue.
+- Errors stay human: “Could not load equipment data” with a connection/reload hint — no
+  technical URLs in the label.
+
 ## Accessibility and motion
 
 - Use `header`, `main`, and `footer` landmarks and one visible `<h1>`.
@@ -318,7 +377,8 @@ The fallback is a bordered inset tile with the accessible label
 - Never communicate state by color alone.
 - Label the table scroll region `Item comparison results`.
 - Use `aria-live="polite"` for loading, errors, and result counts.
-- Under `prefers-reduced-motion: reduce`, remove nonessential transitions and transforms.
+- Under `prefers-reduced-motion: reduce`, remove nonessential transitions and transforms;
+  the first-load orb becomes a static mark rather than a spinning indicator.
 
 ## Prohibited patterns
 
@@ -339,8 +399,15 @@ The fallback is a bordered inset tile with the accessible label
 - Hover-only information or color-only status.
 - Visible developer TODO content.
 - Continuous decorative animation.
-- Gacha source-cell metrics, economics, purchase, or expected-spend chrome.
+- Gacha source-cell metrics, economics, unit-price rows, or expected-spend chrome.
 - Written coin color wording as the accessibility signal for gacha art.
+- Omitting the shop Gold/AP denomination when the coin is **purchasable** in the live shop.
+- Showing buyable Gold/AP (or a Gold cost total) for Shop_Ini3 `Nobuy` products such as Blue
+  Capsule or boss reward boxes.
+- Leaving Nobuy coins with only `Not for sale` when a relationship/Rewards stage path exists
+  (players must still see where the coin drops).
+- Collapsing multi-stage boss/Guardian drops into a single Gold/AP pill with no stage labels.
+- Omitting the `Not in game` text when an equipment row has no live acquisition path.
 
 ## Accepted debt
 

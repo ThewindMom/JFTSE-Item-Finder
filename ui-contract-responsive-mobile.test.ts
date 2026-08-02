@@ -67,13 +67,18 @@ test("shares one responsive modal width across dialog families", async () => {
     expect(css).not.toMatch(/^dialog\s*\{[\s\S]*width:\s*min\(92vw,\s*640px\)/m);
 });
 
-test("uses a shared wide-screen shell cap on every page band", async () => {
+test("uses the full viewport width across every page band", async () => {
     const css = await projectFile("./style.css");
     const shellWidthRules = css.match(
         /width:\s*min\(100%,\s*var\(--jf-shell-max\)\)/g,
     );
 
-    expect(css).toContain("--jf-shell-max: 1920px");
-    expect(shellWidthRules).toHaveLength(4);
-    expect(css).not.toContain("width: min(100%, 1440px)");
+    expect(css).toContain("--jf-shell-max: 100%");
+    // Header, workspace, and footer use the shell max; world-stage matches the
+    // workspace content band (viewport minus shared page gutters).
+    expect(shellWidthRules).toHaveLength(3);
+    expect(css).toMatch(
+        /\.finder-heading\.world-stage[\s\S]*width:\s*min\(100%\s*-\s*2\s*\*\s*var\(--jf-space-6\),\s*var\(--jf-shell-max\)\)/,
+    );
+    expect(css).not.toContain("--jf-shell-max: 1920px");
 });

@@ -1,4 +1,14 @@
 import { createHTML } from './html';
+import {
+    prettyGuardianMapName,
+    projectGachaAcquisitionChannels,
+    stageChannelLabel,
+    type GachaSourceInput,
+} from './gachaAcquisition';
+import { priorityStatHeaderDisplay } from './priorityStatHeaders';
+
+export { priorityStatHeaderDisplay } from './priorityStatHeaders';
+export type { PriorityStatHeaderDisplay } from './priorityStatHeaders';
 
 export const characters = ["Niki", "LunLun", "Lucy", "Shua", "Dhanpir", "Pochi", "Al"] as const;
 export type Character = typeof characters[number];
@@ -198,7 +208,13 @@ export class Gacha {
         readonly name: string,
         readonly price: number = 0,
         readonly ap: boolean = false,
+        /** Listed in the live shop catalog (`enabled`). */
         readonly enabled: boolean = false,
+        /**
+         * Can be purchased with Gold/AP. False when Shop_Ini3 `Nobuy≠0`
+         * even if the catalog still lists the product as enabled.
+         */
+        readonly purchasable: boolean = true,
     ) {
         for (const character of characters) {
             this.shop_items.set(character, new Map<Item, [/*probability:*/ number, /*quantity_min:*/ number, /*quantity_max:*/ number]>())
@@ -518,6 +534,13 @@ function isApiItem(obj: any): obj is ApiItem {
     ].every(b => b);
 }
 
+/** Product indexes that reject shop buys (Shop_Ini3 Nobuy≠0). Live API omits this field. */
+let shopNobuyProductIndexes: ReadonlySet<number> = new Set();
+
+function isShopPurchasable(productIndex: number, enabled: boolean): boolean {
+    return enabled && !shopNobuyProductIndexes.has(productIndex);
+}
+
 function parseApiShopData(data: string) {
     for (const apiItem of JSON.parse(data)) {
         if (!isApiItem(apiItem)) {
@@ -538,6 +561,8 @@ function parseApiShopData(data: string) {
             apiItem.item9,
         ].filter(id => !!id && items.get(id)).map(id => items.get(id)!);
 
+        const purchasable = isShopPurchasable(apiItem.productIndex, apiItem.enabled);
+
         if (apiItem.category === "PARTS") {
             if (inner_items.length === 1) {
                 shop_items.set(apiItem.productIndex, inner_items[0]);
@@ -547,7 +572,8 @@ function parseApiShopData(data: string) {
                 item.name_en = apiItem.name;
                 shop_items.set(apiItem.productIndex, item);
             }
-            if (apiItem.enabled) {
+            // Only real purchase paths count as shop sources (exclude Nobuy catalog rows).
+            if (purchasable) {
                 const itemSource = new ShopItemSource(apiItem.productIndex, apiItem.price0, apiItem.priceType === "MINT", inner_items);
                 for (const item of inner_items) {
                     item.sources.push(itemSource);
@@ -564,12 +590,13 @@ function parseApiShopData(data: string) {
                     apiItem.price0,
                     apiItem.priceType === "MINT",
                     apiItem.enabled,
+                    purchasable,
                 ),
             );
             const gachaItem = new Item();
             gachaItem.name_en = apiItem.name;
             shop_items.set(apiItem.productIndex, gachaItem);
-            if (apiItem.enabled) {
+            if (purchasable) {
                 gachaItem.sources.push(new ShopItemSource(apiItem.productIndex, apiItem.price0, apiItem.priceType === "MINT", inner_items));
             }
         }
@@ -659,18 +686,121 @@ function parseGuardianData(data: string) {
     }
 }
 
-export async function download(url: string): Promise<string> {
-    const filename = url.slice(url.lastIndexOf("/") + 1);
-    const element = document.getElementById("loading");
-    if (element instanceof HTMLElement) {
-        element.textContent = `Loading ${filename}, please wait...`;
+export type ProductStageDrop = {
+    readonly map: string;
+    readonly needBoss: boolean;
+    readonly xp?: number;
+    readonly bossTime?: number;
+};
+
+export type ProductStageDropsCatalog = {
+    readonly products?: Readonly<Record<string, readonly ProductStageDrop[]>>;
+};
+
+/**
+ * Merge S_Relationships-derived boss/map drops onto shop products.
+ * Dedupes by guardian map name so GuardianStages Rewards paths are not doubled.
+ * This is what makes Nobuy coins like Blue Capsule answer "where do I get this?".
+ */
+export function applyProductStageDrops(catalog: ProductStageDropsCatalog): void {
+    const products = catalog.products;
+    if (!products || typeof products !== "object") {
+        return;
     }
+    for (const [productKey, drops] of Object.entries(products)) {
+        const productIndex = Number(productKey);
+        if (!Number.isFinite(productIndex) || !Array.isArray(drops)) {
+            continue;
+        }
+        const item = shop_items.get(productIndex);
+        if (!item) {
+            continue;
+        }
+        const existingMaps = new Set(
+            item.sources
+                .filter((source): source is GuardianItemSource => source instanceof GuardianItemSource)
+                .map((source) => source.guardian_map),
+        );
+        for (const drop of drops) {
+            if (!drop || typeof drop.map !== "string" || drop.map.length === 0) {
+                continue;
+            }
+            if (existingMaps.has(drop.map)) {
+                continue;
+            }
+            existingMaps.add(drop.map);
+            item.sources.push(
+                new GuardianItemSource(
+                    drop.map,
+                    [item],
+                    typeof drop.xp === "number" ? drop.xp : 0,
+                    !!drop.needBoss,
+                    typeof drop.bossTime === "number" ? drop.bossTime : -1,
+                ),
+            );
+        }
+    }
+}
+
+/** User-facing lab-prep phases — never expose raw filenames, paths, or XML names. */
+export function loadingPhaseForUrl(url: string): { title: string; detail: string } {
+    if (url.includes("Item_Parts")) {
+        return {
+            title: "Preparing equipment catalog…",
+            detail: "Gathering every wearable for comparison.",
+        };
+    }
+    if (url.includes("/api/shop")) {
+        return {
+            title: "Checking the live shop…",
+            detail: "Reading Gold and AP listings.",
+        };
+    }
+    if (url.includes("GuardianStages") || url.includes("product-stage-drops")) {
+        return {
+            title: "Mapping stage rewards…",
+            detail: "Finding where gear and coins drop.",
+        };
+    }
+    if (url.includes("Ini3_Lot") || url.includes("lottery")) {
+        return {
+            title: "Loading gacha tables…",
+            detail: "Matching capsules to their prizes.",
+        };
+    }
+    if (url.includes("item-art") || url.includes("shop-nobuy")) {
+        return {
+            title: "Finishing the lab…",
+            detail: "Syncing art and sale status.",
+        };
+    }
+    return {
+        title: "Opening the equipment lab…",
+        detail: "Almost ready to compare gear.",
+    };
+}
+
+function setLoadingPhase(url: string): void {
+    const phase = loadingPhaseForUrl(url);
+    const title = document.getElementById("loading");
+    if (title instanceof HTMLElement) {
+        title.textContent = phase.title;
+    }
+    const detail = document.querySelector(".loading-state__detail");
+    if (detail instanceof HTMLElement) {
+        detail.textContent = phase.detail;
+    }
+}
+
+export async function download(url: string): Promise<string> {
+    setLoadingPhase(url);
     const reply = await fetch(url);
     const progressbar = document.getElementById("progressbar");
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value++;
     }
     if (!reply.ok) {
+        // Keep technical URL detail in the thrown error for logs; UI uses human copy.
         throw new Error(
             `Failed downloading ${url}: ${reply.status}${reply.statusText ? ` ${reply.statusText}` : ""}`
         );
@@ -682,13 +812,17 @@ export async function downloadItems() {
     const progressbar = document.getElementById("progressbar");
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value = 0;
-        progressbar.max = 123;
+        progressbar.max = 124;
     }
     const itemSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/auth-server/src/main/resources/res";
     const gachaSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/game-server/src/main/resources/res/lottery";
     const guardianSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/server-core/src/main/resources/res";
     const itemURL = itemSource + "/Item_Parts_Ini3.xml";
     const itemData = download(itemURL);
+    // Compact Nobuy index (from Shop_Ini3) — live shop API omits this field.
+    const shopNobuyData = download("/assets/shop-nobuy-indexes.json");
+    // Boss/map drops from S_Relationships (beyond GuardianStages Rewards lists).
+    const productStageDropsData = download("/assets/product-stage-drops.json");
     const itemArtData = download("/assets/item-art-map.json");
     const max_shop_pages = 20; //currently need only 10, should be enough
     const shopURL = "/api/shop?size=1000&page=";
@@ -697,11 +831,23 @@ export async function downloadItems() {
     const guardianData = download(guardianURL);
     parseItemData(await itemData);
     itemArtMap = JSON.parse(await itemArtData) as ItemArtMap;
+    try {
+        const nobuyJson = JSON.parse(await shopNobuyData) as {
+            productIndexes?: unknown;
+        };
+        const indexes = Array.isArray(nobuyJson.productIndexes)
+            ? nobuyJson.productIndexes.filter((n): n is number => typeof n === "number")
+            : [];
+        shopNobuyProductIndexes = new Set(indexes);
+    } catch (e) {
+        console.warn(`Failed loading shop Nobuy index: ${e}`);
+        shopNobuyProductIndexes = new Set();
+    }
     await Promise.all(shopDatas.map(p => p.then(data => parseApiShopData(data))));
 
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value = 0;
-        progressbar.max = gachas.size + 3;
+        progressbar.max = gachas.size + 4;
     }
     const gacha_items: [Promise<string>, Gacha, string][] = [];
     for (const [, gacha] of gachas) {
@@ -709,6 +855,11 @@ export async function downloadItems() {
         gacha_items.push([download(gacha_url), gacha, gacha_url]);
     }
     parseGuardianData(await guardianData);
+    try {
+        applyProductStageDrops(JSON.parse(await productStageDropsData) as ProductStageDropsCatalog);
+    } catch (e) {
+        console.warn(`Failed loading product stage drops: ${e}`);
+    }
     for (const [item, gacha, gacha_url] of gacha_items) {
         try {
             parseGachaData(await item, gacha);
@@ -751,14 +902,15 @@ function createExcludeIcon(): SVGSVGElement {
 }
 
 function deletableItem(item: Item, character?: Character) {
+    const excludeLabel = `Exclude ${item.name_en} from results`;
     const excludeButton = createHTML([
         "button",
         {
             class: "item_removal",
             "data-item_index": `${item.id}`,
-            "aria-label": `Exclude ${item.name_en} from results`,
+            "aria-label": excludeLabel,
             type: "button",
-            title: `Exclude ${item.name_en}`,
+            title: excludeLabel,
         },
     ]);
     excludeButton.append(createExcludeIcon());
@@ -835,6 +987,18 @@ export function createPopupLink(text: string, content: HTMLElement | string | (H
     return button;
 }
 
+function createPriorityStatHeaderCell(stat: string): HTMLTableCellElement {
+    const { short, full, abbreviated } = priorityStatHeaderDisplay(stat);
+    if (!abbreviated) {
+        return createHTML(["th", { class: "numeric", scope: "col" }, short]);
+    }
+    const popup = createPopupLink(short, createHTML(["p", full]));
+    popup.setAttribute("title", full);
+    popup.setAttribute("aria-label", full);
+    popup.classList.add("priority-stat-header");
+    return createHTML(["th", { class: "numeric", scope: "col" }, popup]);
+}
+
 function quantityString(quantity_min: number, quantity_max: number) {
     if (quantity_min === 1 && quantity_max === 1) {
         return "";
@@ -845,68 +1009,111 @@ function quantityString(quantity_min: number, quantity_max: number) {
     return ` x ${quantity_min}-${quantity_max}`;
 }
 
-function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, character?: Character) {
-    const content = character ? createHTML([
+/**
+ * Gacha drop-details table: Item | Chance | Expected pulls.
+ * Character is never a column — equipment pools mirror across characters, so listing
+ * Niki/LunLun/… duplicates the same rows. When no character filter is set, same-name
+ * rows (with the same quantity range) collapse to one entry using the first pool rate.
+ */
+export function createGachaDetailsTable(
+    gacha: Gacha,
+    highlightedItem?: Item,
+    character?: Character,
+): HTMLTableElement {
+    const content = createHTML([
         "table",
         [
             "tr",
             ["th", "Item"],
-            ["th", "Chance"],
-            ["th", "Expected pulls"],
-        ],
-    ]) : createHTML([
-        "table",
-        [
-            "tr",
-            ["th", "Item"],
-            ["th", "Character"],
             ["th", "Chance"],
             ["th", "Expected pulls"],
         ],
     ]);
-    const gacha = gachas.get(itemSource.shop_id);
-    if (!gacha) {
-        throw "Internal error";
-    }
 
-    const gacha_items = new Map<Item, [number, number, number]>();
+    type Row = {
+        item: Item;
+        probability: number;
+        quantity_min: number;
+        quantity_max: number;
+    };
+
+    // Character filter: accumulate by Item identity (historical math).
+    // Unfiltered: collapse by display name + quantity so per-character clones are one row.
+    const byItem = character ? new Map<Item, Row>() : undefined;
+    const byName = character ? undefined : new Map<string, Row>();
+
     for (const char of character === undefined ? characters : [character]) {
         const char_items = gacha.shop_items.get(char);
         if (!char_items) {
             continue;
         }
         for (const [char_gacha_item, [tickets, quantity_min, quantity_max]] of char_items) {
-            const item_character = char_gacha_item.character || character;
-            const item_tickets = item_character ? gacha.character_probability.get(item_character)! : gacha.total_probability;
+            // Character-filtered: keep historical denominator (item character, else filter, else total).
+            // Unfiltered collapse: rates are within each character's pool (pools mirror; first row wins).
+            // Using total_probability for shared items would dilute ~7× and reintroduce wrong rates.
+            const item_tickets = character === undefined
+                ? gacha.character_probability.get(char)!
+                : (() => {
+                    const item_character = char_gacha_item.character || character;
+                    return item_character
+                        ? gacha.character_probability.get(item_character)!
+                        : gacha.total_probability;
+                })();
             const probability = tickets / item_tickets;
-            const previous_probability = gacha_items.get(char_gacha_item)?.[0] || 0;
-            gacha_items.set(char_gacha_item, [previous_probability + probability, quantity_min, quantity_max]);
+
+            if (byItem) {
+                const previous = byItem.get(char_gacha_item);
+                byItem.set(char_gacha_item, {
+                    item: char_gacha_item,
+                    probability: (previous?.probability ?? 0) + probability,
+                    quantity_min,
+                    quantity_max,
+                });
+                continue;
+            }
+
+            const key = `${char_gacha_item.name_en}\0${quantity_min}\0${quantity_max}`;
+            if (!byName!.has(key)) {
+                byName!.set(key, {
+                    item: char_gacha_item,
+                    probability,
+                    quantity_min,
+                    quantity_max,
+                });
+            }
         }
     }
 
-    for (const [char_gacha_item, [probability, quantity_min, quantity_max]] of gacha_items) {
-        if (character) {
-            content.appendChild(createHTML([
-                "tr",
-                item === char_gacha_item ? { class: "highlighted" } : "",
-                ["td", char_gacha_item.name_en, quantityString(quantity_min, quantity_max)],
-                ["td", { class: "numeric" }, `${prettyNumber(probability * 100, 2)}%`],
-                ["td", { class: "numeric" }, `${prettyNumber(1 / probability, 2)}`],
-            ]));
-        }
-        else {
-            content.appendChild(createHTML([
-                "tr",
-                item === char_gacha_item ? { class: "highlighted" } : "",
-                ["td", char_gacha_item.name_en, quantityString(quantity_min, quantity_max)],
-                ["td", char_gacha_item.character || "*"],
-                ["td", { class: "numeric" }, `${prettyNumber(probability * 100, 2)}%`],
-                ["td", { class: "numeric" }, `${prettyNumber(1 / probability, 2)}`],
-            ]));
-        }
+    const rows = byItem ? [...byItem.values()] : [...byName!.values()];
+    for (const row of rows) {
+        const highlighted = highlightedItem !== undefined && (
+            highlightedItem === row.item
+            || (
+                character === undefined
+                && highlightedItem.name_en === row.item.name_en
+            )
+        );
+        content.appendChild(createHTML([
+            "tr",
+            highlighted ? { class: "highlighted" } : "",
+            ["td", row.item.name_en, quantityString(row.quantity_min, row.quantity_max)],
+            ["td", { class: "numeric" }, `${prettyNumber(row.probability * 100, 2)}%`],
+            ["td", { class: "numeric" }, `${prettyNumber(1 / row.probability, 2)}`],
+        ]));
     }
 
-    return createPopupLink(itemSource.item.name_en, content);
+    return content;
+}
+
+function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, character?: Character) {
+    const gacha = gachas.get(itemSource.shop_id);
+    if (!gacha) {
+        throw "Internal error";
+    }
+    return createPopupLink(
+        itemSource.item.name_en,
+        createGachaDetailsTable(gacha, item, character),
+    );
 }
 
 function createSetSourcePopup(item: Item, itemSource: ShopItemSource) {
@@ -922,8 +1129,9 @@ function prettyTime(seconds: number) {
 }
 
 function createGuardianPopup(item: Item, itemSource: GuardianItemSource) {
+    const mapLabel = stageChannelLabel(itemSource.guardian_map, itemSource.need_boss);
     const content = [
-        `Guardian map ${itemSource.guardian_map}`,
+        `Guardian map ${prettyGuardianMapName(itemSource.guardian_map)}`,
         createHTML(
             [
                 "ul", { class: "layout" },
@@ -942,7 +1150,7 @@ function createGuardianPopup(item: Item, itemSource: GuardianItemSource) {
             ]
         )
     ];
-    return createPopupLink(itemSource.guardian_map, content);
+    return createPopupLink(mapLabel, content);
 }
 
 function itemSourcesToElementArray(
@@ -954,8 +1162,21 @@ function itemSourcesToElementArray(
         .map(itemSource => sourceItemElement(item, itemSource, character));
 }
 
-function isPlainTextSourceGroup(elements: readonly (HTMLElement | string)[]): boolean {
-    return elements.length > 0 && elements.every((element) => typeof element === "string");
+function elementClassTokens(element: HTMLElement): string[] {
+    // Prefer className over classList — the unit DOM harness sets className via
+    // setAttribute("class") and does not implement a full classList.
+    const raw = typeof element.className === "string"
+        ? element.className
+        : element.getAttribute("class") || "";
+    return raw.split(/\s+/).filter(Boolean);
+}
+
+function isGachaSourceGroup(elements: readonly (HTMLElement | string)[]): boolean {
+    return elements.some(
+        (element) =>
+            typeof element !== "string"
+            && elementClassTokens(element).includes("gacha-source-summary"),
+    );
 }
 
 function makeSourcesList(list: (HTMLElement | string)[][]): (HTMLElement | string)[] {
@@ -973,12 +1194,13 @@ function makeSourcesList(list: (HTMLElement | string)[][]): (HTMLElement | strin
             add(" ");
             continue;
         }
-        // Comma only between adjacent plain-text sources (e.g. "100 Gold, 50 AP").
-        // Gacha/guardian cards are block elements — a text comma becomes a visual break.
+        // Comma between shop/set/guardian paths so dual prices stay legible
+        // ("50000 Gold, Supporter Set 350000 Gold"). Never next to gacha coin cards —
+        // those are block summaries and a text comma becomes a visual break.
         if (
             previousGroup !== undefined
-            && isPlainTextSourceGroup(previousGroup)
-            && isPlainTextSourceGroup(elements)
+            && !isGachaSourceGroup(previousGroup)
+            && !isGachaSourceGroup(elements)
         ) {
             add(", ");
         }
@@ -1035,9 +1257,32 @@ function createItemAvailabilityBadge(item: Item) {
     ]);
 }
 
-function createGachaCurrencyLabel(gacha: Gacha) {
-    if (gacha.enabled) {
-        if (gacha.ap) {
+function collectGachaSourceInputs(coin: Item | undefined): GachaSourceInput[] {
+    if (!coin) {
+        return [];
+    }
+    const inputs: GachaSourceInput[] = [];
+    for (const source of coin.sources) {
+        if (source instanceof ShopItemSource) {
+            inputs.push({ kind: "shop", ap: source.ap });
+        } else if (source instanceof GuardianItemSource) {
+            inputs.push({
+                kind: "stage",
+                map: source.guardian_map,
+                needBoss: source.need_boss,
+            });
+        }
+    }
+    return inputs;
+}
+
+function createGachaShopChannelLabel(
+    currency: "Gold" | "AP",
+    available: boolean,
+    reason?: "not_for_sale" | "not_available",
+): HTMLElement {
+    if (available) {
+        if (currency === "AP") {
             return createHTML([
                 "span",
                 { class: "gacha-currency gacha-currency--ap" },
@@ -1050,15 +1295,104 @@ function createGachaCurrencyLabel(gacha: Gacha) {
             "Gold",
         ]);
     }
-    const currency = gacha.ap ? "AP" : "Gold";
+    if (reason === "not_for_sale") {
+        return createHTML([
+            "span",
+            {
+                class: "gacha-shop-status gacha-shop-status--not-for-sale",
+                title: `${currency} product is listed in the shop catalog but cannot be purchased (Nobuy)`,
+            },
+            "Not for sale",
+        ]);
+    }
     return createHTML([
         "span",
         {
-            class: "gacha-currency gacha-currency--unavailable",
+            class: "gacha-shop-status gacha-shop-status--not-available",
             title: `${currency} coin is not currently sold in the live shop`,
         },
         `${currency} · Not available`,
     ]);
+}
+
+function createGachaStageChannelLabel(
+    coin: Item | undefined,
+    map: string,
+    needBoss: boolean,
+    label: string,
+): HTMLElement {
+    const guardianSource = coin?.sources.find(
+        (source): source is GuardianItemSource =>
+            source instanceof GuardianItemSource && source.guardian_map === map,
+    );
+    const channelClass = needBoss
+        ? "gacha-source-channel gacha-source-channel--boss"
+        : "gacha-source-channel gacha-source-channel--guardian";
+    if (guardianSource && coin) {
+        const popup = createGuardianPopup(coin, guardianSource);
+        const existing = popup.getAttribute("class") || "popup_link";
+        popup.setAttribute("class", `${existing} ${channelClass}`);
+        popup.setAttribute("aria-label", label);
+        return popup;
+    }
+    if (needBoss) {
+        return createHTML([
+            "span",
+            {
+                class: "gacha-source-channel gacha-source-channel--boss",
+                title: `Boss stage drop: ${prettyGuardianMapName(map)}`,
+            },
+            label,
+        ]);
+    }
+    return createHTML([
+        "span",
+        {
+            class: "gacha-source-channel gacha-source-channel--guardian",
+            title: `Guardian stage drop: ${prettyGuardianMapName(map)}`,
+        },
+        label,
+    ]);
+}
+
+/** Kept for contracts that pin the helper name; returns shop + stage channel chips. */
+function createGachaCurrencyLabel(gacha: Gacha): HTMLElement {
+    const channels = createGachaAcquisitionChannelElements(gacha);
+    if (channels.length === 1) {
+        return channels[0]!;
+    }
+    return createHTML([
+        "span",
+        { class: "gacha-acquisition-channels" },
+        ...channels,
+    ]);
+}
+
+function createGachaAcquisitionChannelElements(gacha: Gacha): HTMLElement[] {
+    const coin = shop_items.get(gacha.shop_index);
+    const projected = projectGachaAcquisitionChannels(
+        {
+            ap: gacha.ap,
+            enabled: gacha.enabled,
+            purchasable: gacha.purchasable,
+        },
+        collectGachaSourceInputs(coin),
+    );
+    return projected.map((channel) => {
+        if (channel.kind === "shop") {
+            return createGachaShopChannelLabel(
+                channel.currency,
+                channel.available,
+                channel.reason,
+            );
+        }
+        return createGachaStageChannelLabel(
+            coin,
+            channel.map,
+            channel.needBoss,
+            channel.label,
+        );
+    });
 }
 
 function createGachaSourceSummary(
@@ -1070,6 +1404,7 @@ function createGachaSourceSummary(
     if (!gacha) {
         throw "Internal error";
     }
+    const channelElements = createGachaAcquisitionChannelElements(gacha);
     return createHTML([
         "div",
         {
@@ -1089,7 +1424,17 @@ function createGachaSourceSummary(
                     itemSource,
                     itemSource.requiresGuardian ? undefined : character,
                 ),
-                createGachaCurrencyLabel(gacha),
+            ],
+            [
+                "div",
+                {
+                    class: "gacha-acquisition-channels",
+                    role: "list",
+                    "aria-label": `${gacha.name} sources`,
+                },
+                ...channelElements.map((element) =>
+                    createHTML(["span", { class: "gacha-acquisition-channels__item", role: "listitem" }, element]),
+                ),
             ],
         ],
     ]);
@@ -1318,7 +1663,7 @@ function itemToTableRow(item: Item, sourceFilter: (itemSource: ItemSource) => bo
 export function getGachaTable(filter: (item: Item) => boolean, char?: Character): HTMLTableElement {
     const table = createHTML(
         ["table",
-            ["caption", "Gacha coins with Gold or AP denomination"],
+            ["caption", "Gacha coins by shop currency and stage sources"],
             ["tr",
                 ["th", { class: "Name_column" }, "Name"],
             ]
@@ -1378,7 +1723,7 @@ export function getResultsTable(
                     ["th", { class: "Art_column", scope: "col" }, "Art"],
                     ["th", { class: "Character_column", scope: "col" }, "Character"],
                     ["th", { class: "Part_column", scope: "col" }, "Part"],
-                    ...priorityStats.map(stat => createHTML(["th", { class: "numeric", scope: "col" }, stat])),
+                    ...priorityStats.map((stat) => createPriorityStatHeaderCell(stat)),
                     ["th", { class: "Level_column numeric", scope: "col" }, "Level"],
                     ["th", { class: "Source_column", scope: "col" }, "Source"],
                 ],

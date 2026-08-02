@@ -58,16 +58,23 @@
                     <h2 id="results-title">Equipment results</h2>
                 </div>
                 <div class="results-panel__meta">
-                    <p id="resultsStatus" class="results-status" aria-live="polite">Loading item data…</p>
+                    <p id="resultsStatus" class="results-status" aria-live="polite">Preparing the lab…</p>
                 </div>
             </div>
 
-            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite">
-                <div class="loading-state__copy">
-                    <label id="loading" for="progressbar">Loading item database…</label>
-                    <span>Fetching equipment, shops, gacha, and Guardian data.</span>
+            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite"
+                aria-busy="true">
+                <div class="loading-state__visual" aria-hidden="true">
+                    <div class="loading-orb">
+                        <span class="loading-orb__ring"></span>
+                        <span class="loading-orb__core"></span>
+                    </div>
                 </div>
-                <progress id="progressbar" max="100" value="0" aria-label="Item data loading progress"></progress>
+                <div class="loading-state__copy">
+                    <label id="loading" for="progressbar">Opening the equipment lab…</label>
+                    <span class="loading-state__detail">Preparing equipment, shops, and rewards.</span>
+                </div>
+                <progress id="progressbar" max="100" value="0" aria-label="Equipment data loading progress"></progress>
             </div>
 
             <div class="table-scroll-shell">

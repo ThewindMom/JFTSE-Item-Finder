@@ -35,6 +35,8 @@ if (import.meta.main) {
                 "./assets/fantasy-tennis-island.webp",
             ),
             "/assets/item-art-map.json": Bun.file("./assets/item-art-map.json"),
+            "/assets/shop-nobuy-indexes.json": Bun.file("./assets/shop-nobuy-indexes.json"),
+            "/assets/product-stage-drops.json": Bun.file("./assets/product-stage-drops.json"),
             "/assets/item-art/:file": request => {
                 const file = request.params.file;
                 if (!ITEM_ART_FILE.test(file)) {

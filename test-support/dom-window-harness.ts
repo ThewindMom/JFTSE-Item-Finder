@@ -12,10 +12,10 @@ export type DomNode = {
     hidden: boolean;
     style: Record<string, string>;
     classList: {
-        add(): void;
-        remove(): void;
-        contains(): boolean;
-        toggle(): void;
+        add(...tokens: string[]): void;
+        remove(...tokens: string[]): void;
+        contains(token: string): boolean;
+        toggle(token: string): boolean;
     };
     setAttribute(key: string, value: string): void;
     getAttribute(key: string): string | null;
@@ -40,12 +40,33 @@ class ElementNode implements DomNode {
     hidden = false;
     style: Record<string, string> = {};
     classList = {
-        add() {},
-        remove() {},
-        contains() {
-            return false;
+        add: (...tokens: string[]) => {
+            const next = new Set(this.className.split(/\s+/).filter(Boolean));
+            for (const token of tokens) {
+                if (token) {
+                    next.add(token);
+                }
+            }
+            this.className = [...next].join(" ");
+            this.attrs.class = this.className;
         },
-        toggle() {},
+        remove: (...tokens: string[]) => {
+            const drop = new Set(tokens);
+            this.className = this.className
+                .split(/\s+/)
+                .filter((token) => token && !drop.has(token))
+                .join(" ");
+            this.attrs.class = this.className;
+        },
+        contains: (token: string) => this.className.split(/\s+/).includes(token),
+        toggle: (token: string) => {
+            if (this.classList.contains(token)) {
+                this.classList.remove(token);
+                return false;
+            }
+            this.classList.add(token);
+            return true;
+        },
     };
 
     constructor(tag: string) {

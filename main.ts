@@ -574,6 +574,11 @@ function restoreSelection() {
 
 function updateResults() {
     saveSelection();
+    // While first-load lab prep is active, keep friendly loading copy — do not paint
+    // an empty inventory ("No items match…") over the animated loader.
+    if (document.getElementById("results_group")?.getAttribute("aria-busy") === "true") {
+        return;
+    }
     const filters: ((item: Item) => boolean)[] = [];
     const sourceFilters: ((itemSource: ItemSource) => boolean)[] = [];
     let selectedCharacter: Character | undefined;
@@ -1035,13 +1040,16 @@ window.addEventListener("load", async () => {
     const resultsGroup = document.getElementById("results_group");
     const resultsStatus = document.getElementById("resultsStatus");
     const loadingLabel = document.getElementById("loading");
-    const loadingCopy = document.querySelector(".loading-state__copy span");
+    const loadingCopy = document.querySelector(".loading-state__detail")
+        ?? document.querySelector(".loading-state__copy span");
+    const loadingGroup = document.getElementById("loading_group");
     if (!(resultsStatus instanceof HTMLElement)
         || !(loadingLabel instanceof HTMLLabelElement)
         || !(loadingCopy instanceof HTMLElement)) {
         throw "Internal error";
     }
     resultsGroup?.setAttribute("aria-busy", "true");
+    loadingGroup?.setAttribute("aria-busy", "true");
     setItemTypeSelectorFunctionality();
     restoreSelection();
     try {
@@ -1051,6 +1059,7 @@ window.addEventListener("load", async () => {
         loadingLabel.textContent = "Could not load equipment data";
         loadingCopy.textContent = "Check the preview server connection, then reload this page.";
         resultsGroup?.setAttribute("aria-busy", "false");
+        loadingGroup?.setAttribute("aria-busy", "false");
         return;
     }
     for (const element of document.getElementsByClassName("show_after_load")) {
@@ -1070,9 +1079,10 @@ window.addEventListener("load", async () => {
     const maxLevel = getMaxItemLevel();
     levelrange.value = `${Math.min(parseInt(levelrange.value), maxLevel)}`;
     levelrange.max = `${maxLevel}`;
+    resultsGroup?.setAttribute("aria-busy", "false");
+    loadingGroup?.setAttribute("aria-busy", "false");
     levelrange.dispatchEvent(new Event("input"));
     updateResults();
-    resultsGroup?.setAttribute("aria-busy", "false");
     const sort_help = document.getElementById("priority_legend");
     if (sort_help instanceof HTMLLegendElement) {
         sort_help.appendChild(createPopupLink(" (?)", createHTML(["p",

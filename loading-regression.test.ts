@@ -37,3 +37,30 @@ test("Bun route does not pass its server argument as the proxy fetcher", async (
 
     expect(server).toContain('"/api/shop": request => proxyShopRequest(request)');
 });
+
+test("first-load status never surfaces technical XML filenames to the user", async () => {
+    const [itemLookup, html, css] = await Promise.all([
+        Bun.file(new URL("./itemLookup.ts", import.meta.url)).text(),
+        Bun.file(new URL("./index.html", import.meta.url)).text(),
+        Bun.file(new URL("./style.css", import.meta.url)).text(),
+    ]);
+
+    // No template that paints raw fetch paths/filenames into the label.
+    expect(itemLookup).not.toContain("Loading ${filename}");
+    expect(itemLookup).not.toMatch(/Loading \$\{filename\}/);
+    expect(itemLookup).not.toContain("please wait...");
+    expect(itemLookup).toContain("loadingPhaseForUrl");
+    expect(itemLookup).toContain("Opening the equipment lab");
+
+    // Animated lab-prep shell: visual + friendly copy, no technical subtitle.
+    expect(html).toContain('class="loading-state');
+    expect(html).toContain("loading-state__visual");
+    expect(html).toContain("loading-orb");
+    expect(html).toContain('class="loading-state__detail"');
+    expect(html).not.toContain("Fetching equipment, shops, gacha, and Guardian data.");
+    expect(html).not.toMatch(/\.xml/i);
+
+    expect(css).toContain(".loading-orb");
+    expect(css).toContain("@keyframes loading-orb-spin");
+    expect(css).toContain("prefers-reduced-motion");
+});

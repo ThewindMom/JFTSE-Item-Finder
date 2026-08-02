@@ -34,6 +34,10 @@
     --jf-currency-gold-wash: hsl(43 90% 58% / 16%);
     --jf-currency-ap: hsl(278 62% 46%);
     --jf-currency-ap-wash: hsl(278 62% 58% / 14%);
+    --jf-source-boss: hsl(14 72% 40%);
+    --jf-source-boss-wash: hsl(14 78% 48% / 14%);
+    --jf-source-guardian: hsl(166 40% 30%);
+    --jf-source-guardian-wash: hsl(166 36% 42% / 14%);
     --jf-text-on-accent: hsl(194 58% 18%);
     --jf-overlay: hsl(194 48% 15% / 64%);
 
@@ -256,7 +260,7 @@ summary:focus-visible,
     min-height: 216px;
     align-items: center;
     justify-content: space-between;
-    width: min(100%, var(--jf-shell-max));
+    width: min(100% - 2 * var(--jf-space-6), var(--jf-shell-max));
     margin: var(--jf-space-5) auto;
     padding: var(--jf-space-8);
     overflow: hidden;
@@ -355,7 +359,6 @@ dialog button {
 
 .filter-toggle:hover,
 .panel__mobile-header button:hover,
-.item_removal:hover,
 .item_removal_removal:hover,
 dialog button:hover {
     background: var(--jf-accent);
@@ -724,6 +727,7 @@ ul.layout label {
     padding-inline: var(--jf-space-2);
 }
 
+/* Icon exclude: quiet by default, danger-tinted on hover (destructive action). */
 .item_removal {
     display: inline-grid;
     place-items: center;
@@ -731,8 +735,17 @@ ul.layout label {
     inline-size: 32px;
     min-width: 32px;
     min-height: 32px;
+    margin-right: var(--jf-space-2);
     padding: 0;
+    border-color: var(--jf-border);
+    background: var(--jf-surface-raised);
+    color: var(--jf-text-muted);
     line-height: 0;
+    transition:
+        background var(--jf-motion-fast),
+        color var(--jf-motion-fast),
+        border-color var(--jf-motion-fast),
+        transform var(--jf-motion-fast);
 }
 
 .item_removal__icon {
@@ -740,8 +753,19 @@ ul.layout label {
     pointer-events: none;
 }
 
+.item_removal:hover {
+    border-color: var(--jf-danger);
+    background: color-mix(in srgb, var(--jf-danger) 12%, var(--jf-surface-raised));
+    color: var(--jf-danger);
+}
+
 .item_removal:active {
     transform: scale(0.96);
+}
+
+.item_removal:focus-visible {
+    outline: 2px solid var(--jf-focus);
+    outline-offset: 2px;
 }
 
 .exclusion-section .section-hint {
@@ -776,10 +800,6 @@ ul.layout label {
     font-size: var(--jf-type-caption);
 }
 
-
-.item_removal {
-    margin-right: var(--jf-space-2);
-}
 
 .item_removal_removal {
     order: 2;
@@ -836,10 +856,12 @@ ul.layout label {
 }
 
 #priority_list > li::after {
+    flex: 0 0 auto;
     color: var(--jf-text-muted);
     content: "⋮⋮";
     font-weight: 700;
     letter-spacing: -0.25em;
+    opacity: 0.72;
 }
 
 .priority-stat-label {
@@ -848,32 +870,39 @@ ul.layout label {
     font-weight: 600;
 }
 
+/* Segmented up/down control — reads as one unit, not two floating chips. */
 .priority-move-controls {
     display: inline-flex;
     flex: 0 0 auto;
-    align-items: center;
-    gap: 2px;
+    align-items: stretch;
     margin-left: auto;
+    overflow: hidden;
+    border: 1px solid var(--jf-border-subtle);
+    border-radius: var(--jf-radius-sm);
+    background: var(--jf-surface-raised);
 }
 
 .priority-move {
     display: inline-grid;
     place-items: center;
-    inline-size: 28px;
-    min-width: 28px;
-    min-height: 28px;
+    inline-size: 26px;
+    min-width: 26px;
+    min-height: 26px;
     padding: 0;
-    border: 1px solid var(--jf-border-subtle);
-    border-radius: var(--jf-radius-sm);
-    background: var(--jf-surface-raised);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: var(--jf-text-secondary);
     cursor: pointer;
     line-height: 0;
     transition:
         background var(--jf-motion-fast),
         color var(--jf-motion-fast),
-        border-color var(--jf-motion-fast),
         transform var(--jf-motion-fast);
+}
+
+.priority-move + .priority-move {
+    border-left: 1px solid var(--jf-border-subtle);
 }
 
 .priority-move__icon {
@@ -882,7 +911,6 @@ ul.layout label {
 }
 
 .priority-move:hover:not(:disabled) {
-    border-color: var(--jf-border-strong);
     background: var(--jf-accent-wash);
     color: var(--jf-accent-strong);
 }
@@ -892,12 +920,14 @@ ul.layout label {
 }
 
 .priority-move:focus-visible {
+    position: relative;
+    z-index: 1;
     outline: 2px solid var(--jf-focus);
-    outline-offset: 2px;
+    outline-offset: -1px;
 }
 
 .priority-move:disabled {
-    opacity: 0.35;
+    opacity: 0.28;
     cursor: not-allowed;
 }
 
@@ -907,8 +937,25 @@ ul.layout label {
     color: var(--jf-text);
 }
 
+#priority_list > li:hover .priority-move {
+    color: var(--jf-text-secondary);
+}
+
+#priority_list > li:hover .priority-move:hover:not(:disabled) {
+    color: var(--jf-accent-strong);
+}
+
+#priority_list > li:hover::after {
+    opacity: 0.45;
+}
+
 #priority_list > li:active {
     cursor: grabbing;
+}
+
+#priority_list > li:active .priority-move,
+#priority_list > li:active .priority-move-controls {
+    cursor: pointer;
 }
 
 #priority_list > li.drophover {
@@ -990,28 +1037,76 @@ ul.layout label {
 
 .loading-state {
     display: grid;
+    justify-items: center;
     gap: var(--jf-space-4);
-    padding: var(--jf-space-6);
+    max-width: 28rem;
+    margin-inline: auto;
+    padding: var(--jf-space-8) var(--jf-space-6);
+    text-align: center;
+}
+
+.loading-state__visual {
+    display: grid;
+    place-items: center;
+    inline-size: 4.5rem;
+    block-size: 4.5rem;
+}
+
+.loading-orb {
+    position: relative;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+}
+
+.loading-orb__ring,
+.loading-orb__core {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+
+.loading-orb__ring {
+    border: 2px solid transparent;
+    border-top-color: var(--jf-accent);
+    border-right-color: var(--jf-accent-soft);
+    box-shadow: var(--jf-shadow-glow);
+    animation: loading-orb-spin 900ms linear infinite;
+}
+
+.loading-orb__core {
+    inset: 22%;
+    background:
+        radial-gradient(circle at 35% 30%, hsl(0 0% 100% / 72%), transparent 55%),
+        var(--jf-accent-wash);
+    border: 1px solid var(--jf-border-subtle);
+    box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 40%);
+    animation: loading-orb-pulse 1400ms ease-in-out infinite;
 }
 
 .loading-state__copy {
     display: grid;
     gap: var(--jf-space-1);
+    justify-items: center;
 }
 
 .loading-state__copy label {
     color: var(--jf-text);
+    font-family: var(--jf-font-display);
     font-size: var(--jf-type-section);
     font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
+.loading-state__detail,
 .loading-state__copy span {
     color: var(--jf-text-muted);
     font-size: var(--jf-type-caption);
+    max-width: 22rem;
 }
 
 #progressbar {
     width: 100%;
+    max-width: 18rem;
     height: 8px;
     overflow: hidden;
     border: 0;
@@ -1026,12 +1121,30 @@ ul.layout label {
 
 #progressbar::-webkit-progress-value {
     border-radius: var(--jf-radius-pill);
-    background: var(--jf-accent);
+    background: linear-gradient(90deg, var(--jf-accent), var(--jf-accent-strong));
 }
 
 #progressbar::-moz-progress-bar {
     border-radius: var(--jf-radius-pill);
-    background: var(--jf-accent);
+    background: linear-gradient(90deg, var(--jf-accent), var(--jf-accent-strong));
+}
+
+@keyframes loading-orb-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes loading-orb-pulse {
+    0%,
+    100% {
+        opacity: 0.72;
+        transform: scale(0.96);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .table-scroll-shell {
@@ -1428,10 +1541,83 @@ td.total {
     color: var(--jf-currency-ap);
 }
 
-.gacha-currency--unavailable {
-    border-color: hsl(0 72% 44% / 28%);
-    background: hsl(0 72% 44% / 10%);
-    color: var(--jf-danger);
+/* Shop status is meta, not a denomination. Quieter than Gold/AP and stage chips. */
+.gacha-shop-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 var(--jf-space-2);
+    border: 1px dashed var(--jf-border-subtle);
+    border-radius: var(--jf-radius-sm);
+    background: transparent;
+    color: var(--jf-text-secondary);
+    font-family: var(--jf-font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.gacha-shop-status--not-for-sale {
+    border-color: hsl(192 26% 38% / 32%);
+    background: hsl(192 20% 50% / 8%);
+    color: var(--jf-text-muted);
+}
+
+.gacha-shop-status--not-available {
+    border-color: hsl(28 88% 42% / 30%);
+    background: hsl(28 88% 42% / 9%);
+    color: var(--jf-warning);
+}
+
+.gacha-acquisition-channels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jf-space-2);
+    min-width: 0;
+}
+
+.gacha-acquisition-channels__item {
+    display: inline-flex;
+    min-width: 0;
+}
+
+.gacha-source-channel {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    max-width: 100%;
+    padding: 0 var(--jf-space-2);
+    border: 1px solid var(--jf-border);
+    border-radius: var(--jf-radius-pill);
+    font-family: var(--jf-font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+button.gacha-source-channel {
+    cursor: pointer;
+    appearance: none;
+    background: transparent;
+}
+
+.gacha-source-channel--boss {
+    border-color: hsl(14 72% 40% / 34%);
+    background: var(--jf-source-boss-wash);
+    color: var(--jf-source-boss);
+}
+
+.gacha-source-channel--guardian {
+    border-color: hsl(166 40% 30% / 34%);
+    background: var(--jf-source-guardian-wash);
+    color: var(--jf-source-guardian);
 }
 
 .gacha-identity .popup_link {
@@ -1649,6 +1835,19 @@ td.total {
     color: var(--jf-text);
 }
 
+/* Compact priority headers (MS/QS/BS): reuse popup_link click for full names. */
+th.numeric .priority-stat-header {
+    font: inherit;
+    color: inherit;
+    text-decoration-color: color-mix(in srgb, var(--jf-text-muted) 55%, transparent);
+}
+
+th.numeric .priority-stat-header:hover,
+th.numeric .priority-stat-header:focus-visible {
+    color: var(--jf-accent-strong);
+    text-decoration-color: var(--jf-accent-strong);
+}
+
 dialog,
 .item-details-dialog {
     width: min(92vw, 1280px);
@@ -1703,9 +1902,13 @@ dialog button {
 
 @media (max-width: 1199px) and (min-width: 880px) {
     .site-header__inner,
-    .finder-heading,
     .site-footer {
         padding-inline: var(--jf-space-4);
+    }
+
+    .finder-heading.world-stage {
+        width: min(100% - 2 * var(--jf-space-4), var(--jf-shell-max));
+        padding-inline: var(--jf-space-6);
     }
 
     .finder-workspace {
@@ -2151,11 +2354,28 @@ dialog button {
         animation-iteration-count: 1 !important;
     }
 
+    /* Keep a static lab mark + progress bar; no spin or pulse. */
+    .loading-orb__ring {
+        border-color: var(--jf-accent);
+        border-top-color: var(--jf-accent);
+        border-right-color: var(--jf-accent);
+        animation: none;
+        opacity: 0.85;
+    }
+
+    .loading-orb__core {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
     .item-details-dialog[open],
     .filter-toggle:active,
     .item-details-trigger:active,
     .popup_link:active,
     .text-action:active,
+    .item_removal:active,
+    .priority-move:active,
     .table-column-pan.is-revealed {
         animation: none !important;
         transform: none !important;
