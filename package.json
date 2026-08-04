@@ -1,29 +1,19 @@
 {
     "type": "module",
     "scripts": {
-        "build": "make -j",
+        "build": "bun run typecheck && bun build ./main.ts --target=browser --minify --outfile=script.js",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test",
         "generate:catalog": "bun tools/generate_catalog.ts",
-        "clean": "make -j clean",
+        "clean": "bun tools/clean.ts",
         "extract:item-art": "python3 tools/extract_item_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
         "extract:map-art": "python3 tools/extract_map_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
         "extract:stage-bosses": "python3 tools/extract_stage_bosses.py --jftse-root \"$JFTSE_ROOT\" --output-root assets",
         "start": "bun server.ts"
     },
-    "comment": {
-        "build_debug": "make -j debug",
-        "build_release": "make -j release"
-    },
-    "dependencies": {
-        "@babel/plugin-proposal-class-properties": "^7.18.6",
-        "browserify": "^17.0.0",
-        "esmify": "^2.1.1",
-        "uglify-js": "^3.17.4"
-    },
     "devDependencies": {
         "@types/bun": "1.3.14",
         "@types/node": "26.1.2",
-        "ts-node": "^10.4.0",
-        "tslib": "^2.3.1",
         "typescript": "5.9.3"
     }
 }

@@ -162,11 +162,3 @@ test("offers reset and inline loading failure recovery", async () => {
     expect(script).toContain('loadingLabel.textContent = "Could not load equipment data"');
     expect(renderer).not.toContain("alert(");
 });
-
-test("builds TypeScript before browser bundles", async () => {
-    const makefile = await projectFile("./makefile");
-
-    expect(makefile).toContain(".NOTPARALLEL:");
-    expect(makefile).toContain("browserified.js: compile");
-    expect(makefile).toContain("debug: compile");
-});
