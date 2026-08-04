@@ -55,6 +55,11 @@ test("priority list exposes up/down controls and isolates stat labels", async ()
     expect(html).toContain("priority-move-down");
     expect(html).toContain('id="priority_summary_hint"');
     expect(html).toMatch(/arrows|drag|stats win/i);
+    const priorityListTag = html.match(/<ol\b[^>]*\bid="priority_list"[^>]*>/)?.[0];
+    expect(priorityListTag).toBeDefined();
+    expect(priorityListTag).not.toContain("reversed");
+    expect(css).toMatch(/#priority_list\s*\{[\s\S]{0,220}counter-reset:\s*priority(?:\s+0)?;/);
+    expect(css).toMatch(/#priority_list\s*>\s*li\s*\{[\s\S]{0,500}counter-increment:\s*priority(?:\s+1)?;/);
 
     expect(main).toContain("priority-stat-label");
     expect(main).toContain("priority-move-up");

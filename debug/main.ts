@@ -59,7 +59,6 @@ function addFilterTrees() {
         return;
     }
 
-    let first = true;
     for (const character of ["All", ...characters]) {
         const id = `characterSelectors_${character}`;
         const radio_button = createHTML(["input", { id: id, type: "radio", name: "characterSelectors", value: character }]);
@@ -67,9 +66,8 @@ function addFilterTrees() {
         target.appendChild(radio_button);
         target.appendChild(createHTML(["label", { for: id }, character]));
         target.appendChild(createHTML(["br"]));
-        if (first) {
+        if (character === "Niki") {
             radio_button.checked = true;
-            first = false;
         }
     }
 
@@ -194,7 +192,7 @@ function syncRankingSummaryHint(list: HTMLOListElement): void {
     }
     const label = getPriorityStatLabel(top);
     if (label) {
-        hint.textContent = `${label} first`;
+        hint.textContent = `${label} first within each slot`;
     }
 }
 
@@ -493,7 +491,7 @@ function saveSelection() {
 
 function restoreSelection() {
     const stored_character = Variable_storage.get_variable("Character");
-    setSelectedCharacter(typeof stored_character === "string" && isCharacter(stored_character) ? stored_character : "All");
+    setSelectedCharacter(typeof stored_character === "string" && isCharacter(stored_character) ? stored_character : "Niki");
 
     {//Filters
         let states: { [key: string]: boolean } = {};

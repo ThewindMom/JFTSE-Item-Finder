@@ -116,9 +116,12 @@
                         <input type="range" min="1" max="100" value="100" id="levelrange">
                     </div>
 
-                    <div class="toggle-row" id="enchantdiv">
-                        <input type="checkbox" id="enchantToggle">
-                        <label for="enchantToggle">Show post-enchantment stats</label>
+                    <div class="toggle-row stat-mode-control" id="enchantdiv">
+                        <input type="checkbox" id="enchantToggle" aria-describedby="enchantHelp">
+                        <div class="stat-mode-control__copy">
+                            <label for="enchantToggle">Rank by enchanted stats</label>
+                            <p id="enchantHelp">Uses fully enchanted STR, DEX, STA, and WILL when ordering items.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -165,10 +168,10 @@
             <fieldset class="panel priority-panel" id="priority_group">
                 <legend id="priority_legend">Result ranking</legend>
                 <details class="ranking-disclosure">
-                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed first</span></summary>
+                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed first within each slot</span></summary>
                     <div class="disclosure-content">
-                        <p class="panel-intro">Use the arrows or drag to set which stats win.</p>
-                        <ol reversed id="priority_list" aria-label="Item stat priority">
+                        <p class="panel-intro">Use the arrows or drag to rank items within each equipment slot.</p>
+                        <ol id="priority_list" aria-label="Item stat priority">
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Mov Speed</span>
                                 <span class="priority-move-controls">

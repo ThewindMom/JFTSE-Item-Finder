@@ -1755,25 +1755,42 @@ function sourceItemElement(item: Item, itemSource: ItemSource, character?: Chara
     }
 }
 
-function itemDetailStats(item: Item) {
+export type ItemDetailStat = {
+    label: string;
+    base: number;
+    enchanted?: number;
+};
+
+export function itemDetailStats(item: Item): ItemDetailStat[] {
+    const characterStats = [
+        { label: "Strength", base: item.str, enchanted: item.max_str },
+        { label: "Dexterity", base: item.dex, enchanted: item.max_dex },
+        { label: "Stamina", base: item.sta, enchanted: item.max_sta },
+        { label: "Will", base: item.wil, enchanted: item.max_wil },
+    ];
+    const fixedStats = [
+        { label: "Movement", base: item.movement },
+        { label: "Charge", base: item.charge },
+        { label: "Lob", base: item.lob },
+        { label: "Smash", base: item.smash },
+        { label: "Serve", base: item.serve },
+        { label: "HP", base: item.hp },
+        { label: "Quickslots", base: item.quickslots },
+        { label: "Buffslots", base: item.buffslots },
+    ];
+
     return [
-        ["Movement", item.movement],
-        ["Charge", item.charge],
-        ["Lob", item.lob],
-        ["Smash", item.smash],
-        ["Strength", item.str],
-        ["Dexterity", item.dex],
-        ["Stamina", item.sta],
-        ["Will", item.wil],
-        ["Serve", item.serve],
-        ["HP", item.hp],
-        ["Quickslots", item.quickslots],
-        ["Buffslots", item.buffslots],
-    ] as const;
+        ...characterStats
+            .filter(stat => stat.base !== 0 || (item.element_enchantable && stat.enchanted !== 0))
+            .map(({ label, base, enchanted }) =>
+                item.element_enchantable ? { label, base, enchanted } : { label, base }
+            ),
+        ...fixedStats.filter(stat => stat.base !== 0),
+    ];
 }
 
 function createItemDetailsContent(item: Item, character?: Character) {
-    const stats = itemDetailStats(item).filter(([, value]) => value !== 0);
+    const stats = itemDetailStats(item);
     const sources = makeSourcesList(
         itemSourcesToElementArray(item, () => true, character),
     );
@@ -1799,15 +1816,51 @@ function createItemDetailsContent(item: Item, character?: Character) {
             "section",
             { class: "item-details__section", "aria-labelledby": "item-details-stats" },
             ["h3", { id: "item-details-stats" }, "Stats"],
+            [
+                "p",
+                { class: "item-details__stats-note" },
+                item.element_enchantable
+                    ? "Character stats show base and fully enchanted values."
+                    : "This item has base stats only.",
+            ],
             stats.length > 0
                 ? createHTML([
                     "dl",
                     { class: "item-details__stats" },
-                    ...stats.map(([label, value]) => createHTML([
-                        "div",
-                        ["dt", label],
-                        ["dd", `${value}`],
-                    ])),
+                    ...stats.map(({ label, base, enchanted }) => enchanted === undefined
+                        ? createHTML([
+                            "div",
+                            ["dt", label],
+                            ["dd", `${base}`],
+                        ])
+                        : createHTML([
+                            "div",
+                            {
+                                class: "item-stat-comparison",
+                                "aria-label": `${label}: base ${base}, enchanted ${enchanted}`,
+                            },
+                            ["dt", label],
+                            [
+                                "dd",
+                                [
+                                    "span",
+                                    { class: "item-stat-comparison__value" },
+                                    ["small", "Base"],
+                                    ["strong", `${base}`],
+                                ],
+                                [
+                                    "span",
+                                    { class: "item-stat-comparison__arrow", "aria-hidden": "true" },
+                                    "→",
+                                ],
+                                [
+                                    "span",
+                                    { class: "item-stat-comparison__value item-stat-comparison__value--enchanted" },
+                                    ["small", "Enchanted"],
+                                    ["strong", `${enchanted}`],
+                                ],
+                            ],
+                        ])),
                 ])
                 : createHTML(["p", { class: "item-details__empty" }, "No stat bonuses"]),
         ],
