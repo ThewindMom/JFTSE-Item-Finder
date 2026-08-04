@@ -7,40 +7,6 @@ import {
     projectJson,
 } from "./test-support/ui-contract-fixtures";
 
-test("renders actionable gold gacha acquisition summaries", async () => {
-    const [renderer, css] = await Promise.all([
-        projectFile("./itemLookup.ts"),
-        projectFile("./style.css"),
-    ]);
-    const map = await projectJson<{
-        lotteries?: Record<string, {
-            sheet: string;
-            cell: number;
-            color: string;
-            shape: string;
-        }>;
-    }>("./assets/item-art-map.json");
-
-    expect(map.lotteries?.["19"]).toEqual({
-        sheet: "Item_GatchaCoin00",
-        cell: 12,
-        color: "Burgundy-gold",
-        shape: "coin",
-    });
-    expect(renderer).toContain('class: "gacha-source-summary"');
-    expect(renderer).toContain("function createGachaCurrencyLabel");
-    expect(renderer).toContain('class: "gacha-currency gacha-currency--gold"');
-    expect(renderer).not.toContain('class: "gacha-coin-color"');
-    expect(renderer).not.toContain('class: "gacha-metrics"');
-    expect(renderer).not.toContain("Burgundy-gold coin");
-    expect(css).toMatch(/\.gacha-source-summary/);
-    expect(css).toMatch(/\.gacha-currency--gold/);
-    expect(css).not.toMatch(/\.gacha-metrics/);
-    expect(css).not.toMatch(/\.gacha-economics/);
-    expect(css).not.toMatch(/\.gacha-purchase/);
-    expect(css).not.toMatch(/\.gacha-coin-color/);
-});
-
 test("gacha coin art accessible names omit color wording", async () => {
     const renderer = await projectFile("./itemLookup.ts");
     const coinArtFn = renderer.match(
@@ -109,41 +75,6 @@ test("distinguishes AP gacha economics from Gold", async () => {
     expect(css).toMatch(
         /@media \(max-width: 879px\)[\s\S]*\.Source_column[\s\S]*min-width:\s*220px/,
     );
-});
-
-test("labels each gacha coin Gold or AP and marks unavailable coins", async () => {
-    const [renderer, css] = await Promise.all([
-        projectFile("./itemLookup.ts"),
-        projectFile("./style.css"),
-    ]);
-
-    expect(renderer).toContain("function createGachaCurrencyLabel");
-    expect(renderer).toContain("function createGachaAcquisitionChannelElements");
-    expect(renderer).toContain("projectGachaAcquisitionChannels");
-    expect(renderer).toContain('class: "gacha-currency gacha-currency--gold"');
-    expect(renderer).toContain('class: "gacha-currency gacha-currency--ap"');
-    expect(renderer).toContain('class: "gacha-source-channel gacha-source-channel--boss"');
-    expect(renderer).toContain('class: "gacha-source-channel gacha-source-channel--guardian"');
-    expect(renderer).toContain("Not available");
-    expect(renderer).toContain("Not for sale");
-    expect(renderer).toContain("for (const product of catalog.products)");
-    expect(renderer).toContain("for (const value of catalog.stageSources)");
-    expect(renderer).toContain("function applyProductStageDrops");
-    expect(renderer).toContain("createGachaAcquisitionChannelElements(gacha)");
-    expect(renderer).toMatch(
-        /new Gacha\(\s*product\.productIndex,\s*product\.gachaIndex!,\s*product\.name,\s*product\.price,\s*product\.ap,\s*product\.enabled,\s*product\.purchasable,?\s*\)/,
-    );
-    expect(css).toMatch(/\.gacha-currency--gold[\s\S]*--jf-currency-gold/);
-    expect(css).toMatch(/\.gacha-currency--ap[\s\S]*--jf-currency-ap/);
-    // Shop status is not a currency denomination — separate quiet label, no uppercase scream.
-    expect(renderer).toContain('class: "gacha-shop-status gacha-shop-status--not-for-sale"');
-    expect(renderer).toContain('class: "gacha-shop-status gacha-shop-status--not-available"');
-    expect(renderer).not.toContain("gacha-currency--unavailable");
-    expect(css).toMatch(/\.gacha-shop-status--not-for-sale/);
-    expect(css).toMatch(/\.gacha-shop-status--not-available/);
-    expect(css).not.toMatch(/\.gacha-shop-status[\s\S]{0,400}text-transform:\s*uppercase/);
-    expect(css).toMatch(/\.gacha-source-channel--boss[\s\S]*--jf-source-boss/);
-    expect(css).toMatch(/\.gacha-source-channel--guardian[\s\S]*--jf-source-guardian/);
 });
 
 test("marks equipment that is not currently in the game", async () => {

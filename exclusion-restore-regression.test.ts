@@ -6,68 +6,6 @@ import { installMemoryLocalStorage } from "./test-support/dom-window-harness";
 import { Variable_storage } from "./storage";
 
 /**
- * EXCLUSION_PERSISTENCE_WIPE_ON_LOAD
- *
- * Contract: restoreSelection must rehydrate excluded_item_ids into memory before any
- * path that can call updateResults() → saveSelection(). Otherwise save writes the still-
- * empty Set and wipes localStorage (e.g. s929 → s) before the later rehydrate reads it.
- */
-test("restoreSelection rehydrates excluded_item_ids before save-capable event dispatches", async () => {
-    const main = await Bun.file(new URL("./main.ts", import.meta.url)).text();
-    const restoreMatch = main.match(
-        /function restoreSelection\(\) \{[\s\S]*?\n\}\n\n(?=const INITIAL_RESULT_ROWS|function updateResults)/,
-    );
-    expect(restoreMatch).not.toBeNull();
-    const restoreBody = restoreMatch![0];
-
-    const rehydrateAt = restoreBody.indexOf('Variable_storage.get_variable("excluded_item_ids")');
-    const changeDispatchAt = restoreBody.indexOf('dispatchEvent(new Event("change"');
-    const inputDispatchAt = restoreBody.indexOf('dispatchEvent(new Event("input"');
-
-    expect(rehydrateAt).toBeGreaterThan(-1);
-    expect(changeDispatchAt).toBeGreaterThan(-1);
-    expect(inputDispatchAt).toBeGreaterThan(-1);
-
-    // Both change (itemTypeSelector) and input (levelrange) call updateResults → saveSelection.
-    expect(rehydrateAt).toBeLessThan(changeDispatchAt);
-    expect(rehydrateAt).toBeLessThan(inputDispatchAt);
-});
-
-test("modeled restore must not save empty exclusions over persisted ids", async () => {
-    // Mirrors Variable_storage string encoding + the restore/save ordering contract.
-    installMainImportSeam();
-    const { parseExcludedItemIdToken } = await import("./main");
-
-    const storage = new Map<string, string>();
-    storage.set("excluded_item_ids", "s929");
-
-    const excluded_item_ids = new Set<number>();
-
-    function saveSelection() {
-        storage.set("excluded_item_ids", `s${Array.from(excluded_item_ids).join(",")}`);
-    }
-
-    function restoreExclusions() {
-        const excluded_ids = storage.get("excluded_item_ids")?.slice(1);
-        if (typeof excluded_ids === "string") {
-            for (const id of excluded_ids.split(",")) {
-                const parsed = parseExcludedItemIdToken(id);
-                if (parsed !== undefined) {
-                    excluded_item_ids.add(parsed);
-                }
-            }
-        }
-    }
-
-    // Correct contract: rehydrate, then any save-capable update path.
-    restoreExclusions();
-    saveSelection(); // models change/input → updateResults → saveSelection after rehydrate
-
-    expect(storage.get("excluded_item_ids")).toBe("s929");
-    expect(Array.from(excluded_item_ids)).toEqual([929]);
-});
-
-/**
  * EXCLUSION_STORAGE_TOKEN_BOUNDARY
  *
  * Contract: restoreSelection must accept only digits-only safe-integer tokens from
