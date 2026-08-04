@@ -10,6 +10,9 @@ TYPESCRIPT_SOURCES = $(filter-out %.test.ts,$(wildcard *.ts))
 
 all: release debug
 
+catalog:
+	bun run generate:catalog
+
 release: browserified.js
 	$(MINIFY) $< -cm > script.js
 
@@ -26,6 +29,6 @@ browserified.js: compile
 compile:
 	$(TSC) $(TSC_FLAGS) tsconfig.build.json
 
-.PHONY: all compile release debug clean
+.PHONY: all catalog compile release debug clean
 clean:
 	$(RM) *.js *.map

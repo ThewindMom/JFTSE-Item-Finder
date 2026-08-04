@@ -36,6 +36,7 @@ if (import.meta.main) {
             "/assets/fantasy-tennis-island.webp": Bun.file(
                 "./assets/fantasy-tennis-island.webp",
             ),
+            "/assets/catalog.json": Bun.file("./assets/catalog.json"),
             "/assets/item-art-map.json": Bun.file("./assets/item-art-map.json"),
             "/assets/map-art-map.json": Bun.file("./assets/map-art-map.json"),
             "/assets/stage-bosses.json": Bun.file("./assets/stage-bosses.json"),

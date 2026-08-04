@@ -2,6 +2,7 @@
     "type": "module",
     "scripts": {
         "build": "make -j",
+        "generate:catalog": "bun tools/generate_catalog.ts",
         "clean": "make -j clean",
         "extract:item-art": "python3 tools/extract_item_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",
         "extract:map-art": "python3 tools/extract_map_art.py --client-root \"$JFTSE_CLIENT_ROOT\" --output-root assets",

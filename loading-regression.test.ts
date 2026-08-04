@@ -5,7 +5,7 @@ import { expect, test } from "bun:test";
 import { proxyShopRequest } from "./server";
 import { installDomWindowHarness, installFetchStub } from "./test-support/dom-window-harness";
 
-test("local preview requests shop data through its same-origin proxy", async () => {
+test("local preview requests one precomputed catalog", async () => {
     const restoreDom = installDomWindowHarness();
     const previousProgress = Object.getOwnPropertyDescriptor(globalThis, "HTMLProgressElement");
     const previousLocation = Object.getOwnPropertyDescriptor(globalThis, "location");
@@ -29,10 +29,7 @@ test("local preview requests shop data through its same-origin proxy", async () 
         const { downloadItems } = await import("./itemLookup");
         void downloadItems();
 
-        const shopUrls = requestedUrls.filter(url => url.startsWith("/api/shop"));
-        expect(shopUrls).toHaveLength(20);
-        expect(shopUrls[0]).toBe("/api/shop?size=1000&page=0");
-        expect(shopUrls[19]).toBe("/api/shop?size=1000&page=19");
+        expect(requestedUrls).toEqual(["assets/catalog.json"]);
     } finally {
         restoreFetch();
         restoreDom();

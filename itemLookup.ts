@@ -13,6 +13,7 @@ import {
     mergePriorityRankings,
     type PriorityRanker,
 } from './priority';
+import { parseCatalogV1 } from './catalog';
 import {
     projectStageBosses,
     type StageBossCatalog,
@@ -313,6 +314,106 @@ type BossArtCatalog = {
     readonly files?: Readonly<Record<string, { readonly file: string }>>;
 };
 let bossArtCatalog: BossArtCatalog = {};
+
+export function hydrateCatalog(input: unknown): void {
+    const catalog = parseCatalogV1(input);
+    const nextItems = new Map<number, Item>();
+    for (const value of catalog.items) {
+        const item = new Item();
+        const { character, ...fields } = value;
+        Object.assign(item, fields);
+        item.character = character ?? undefined;
+        nextItems.set(item.id, item);
+    }
+
+    const nextShopItems = new Map<number, Item>();
+    for (const product of catalog.products) {
+        const innerItems = product.itemIds.map(id => nextItems.get(id)!);
+        if (product.kind === "parts" && innerItems.length === 1) {
+            nextShopItems.set(product.productIndex, innerItems[0]);
+            continue;
+        }
+        const productItem = new Item();
+        productItem.id = product.productIndex;
+        productItem.name_en = product.name;
+        nextShopItems.set(product.productIndex, productItem);
+    }
+
+    for (const product of catalog.products) {
+        if (!product.purchasable) {
+            continue;
+        }
+        const innerItems = product.itemIds.map(id => nextItems.get(id)!);
+        const source = new ShopItemSource(
+            product.productIndex,
+            product.price,
+            product.ap,
+            innerItems,
+        );
+        if (product.kind === "parts") {
+            for (const item of innerItems) {
+                item.sources.push(source);
+            }
+        }
+        const productItem = nextShopItems.get(product.productIndex);
+        if (product.kind === "lottery" && productItem) {
+            productItem.sources.push(source);
+        }
+    }
+
+    const products = new Map(catalog.products.map(product =>
+        [product.productIndex, product] as const
+    ));
+    const nextGachas = new Map<number, Gacha>();
+    for (const value of catalog.gachas) {
+        const product = products.get(value.productIndex)!;
+        const gacha = new Gacha(
+            product.productIndex,
+            product.gachaIndex!,
+            product.name,
+            product.price,
+            product.ap,
+            product.enabled,
+            product.purchasable,
+        );
+        for (const drop of value.drops) {
+            gacha.add(
+                nextShopItems.get(drop.shopProductIndex)!,
+                drop.probability,
+                drop.character,
+                drop.quantityMin,
+                drop.quantityMax,
+            );
+        }
+        for (const [, characterItems] of gacha.shop_items) {
+            for (const [item] of characterItems) {
+                item.sources.push(new GachaItemSource(gacha.shop_index));
+            }
+        }
+        nextGachas.set(gacha.shop_index, gacha);
+    }
+
+    for (const value of catalog.stageSources) {
+        const attached = nextShopItems.get(value.attachedProductIndex)!;
+        const rewards = value.rewardProductIndexes
+            .map(id => nextShopItems.get(id)!);
+        attached.sources.push(new GuardianItemSource(
+            value.map,
+            rewards,
+            value.xp,
+            value.needBoss,
+            value.bossTime,
+        ));
+    }
+
+    items = nextItems;
+    shop_items = nextShopItems;
+    gachas = nextGachas;
+    itemArtMap = catalog.art.item;
+    mapArtMap = catalog.art.map;
+    stageBossCatalog = catalog.art.stageBoss;
+    bossArtCatalog = catalog.art.boss;
+}
 
 function prettyNumber(n: number, digits: number) {
     let s = n.toFixed(digits);
@@ -827,6 +928,21 @@ export function loadingPhaseForUrl(url: string): { title: string; detail: string
 }
 
 function setLoadingPhase(url: string): void {
+    if (url.includes("catalog.json")) {
+        const phase = {
+            title: "Preparing equipment catalog…",
+            detail: "Loading gear, shops, gachas, and stage rewards.",
+        };
+        const title = document.getElementById("loading");
+        if (title instanceof HTMLElement) {
+            title.textContent = phase.title;
+        }
+        const detail = document.querySelector(".loading-state__detail");
+        if (detail instanceof HTMLElement) {
+            detail.textContent = phase.detail;
+        }
+        return;
+    }
     const phase = loadingPhaseForUrl(url);
     const title = document.getElementById("loading");
     if (title instanceof HTMLElement) {
@@ -858,84 +974,9 @@ export async function downloadItems() {
     const progressbar = document.getElementById("progressbar");
     if (progressbar instanceof HTMLProgressElement) {
         progressbar.value = 0;
-        progressbar.max = 124;
+        progressbar.max = 1;
     }
-    const itemSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/auth-server/src/main/resources/res";
-    const gachaSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/game-server/src/main/resources/res/lottery";
-    const guardianSource = "https://raw.githubusercontent.com/sstokic-tgm/JFTSE/development/server-core/src/main/resources/res";
-    const itemURL = itemSource + "/Item_Parts_Ini3.xml";
-    const itemData = download(itemURL);
-    // Compact Nobuy index (from Shop_Ini3) — live shop API omits this field.
-    const shopNobuyData = download("assets/shop-nobuy-indexes.json");
-    // Boss/map drops from S_Relationships (beyond GuardianStages Rewards lists).
-    const productStageDropsData = download("assets/product-stage-drops.json");
-    const itemArtData = download("assets/item-art-map.json");
-    const mapArtData = download("assets/map-art-map.json");
-    const stageBossData = download("assets/stage-bosses.json");
-    const bossArtData = download("assets/boss-art-map.json");
-    const max_shop_pages = 20; //currently need only 10, should be enough
-    const shopURLs = location.hostname.endsWith(".github.io")
-        ? [...Array(max_shop_pages).keys()].map(n => new URL(`shop/${n}.json`, document.baseURI).href)
-        : [...Array(max_shop_pages).keys()].map(n => `/api/shop?size=1000&page=${n}`);
-    const shopDatas = shopURLs.map(download);
-    const guardianURL = guardianSource + "/GuardianStages.json";
-    const guardianData = download(guardianURL);
-    parseItemData(await itemData);
-    itemArtMap = JSON.parse(await itemArtData) as ItemArtMap;
-    try {
-        mapArtMap = JSON.parse(await mapArtData) as MapArtCatalog;
-    } catch (e) {
-        console.warn(`Failed loading map art catalog: ${e}`);
-        mapArtMap = { files: {}, byName: {} };
-    }
-    try {
-        stageBossCatalog = JSON.parse(await stageBossData) as StageBossCatalog;
-    } catch (e) {
-        console.warn(`Failed loading stage boss catalog: ${e}`);
-        stageBossCatalog = { bosses: {}, guardians: {}, stages: {} };
-    }
-    try {
-        bossArtCatalog = JSON.parse(await bossArtData) as BossArtCatalog;
-    } catch (e) {
-        console.warn(`Failed loading boss art catalog: ${e}`);
-        bossArtCatalog = {};
-    }
-    try {
-        const nobuyJson = JSON.parse(await shopNobuyData) as {
-            productIndexes?: unknown;
-        };
-        const indexes = Array.isArray(nobuyJson.productIndexes)
-            ? nobuyJson.productIndexes.filter((n): n is number => typeof n === "number")
-            : [];
-        shopNobuyProductIndexes = new Set(indexes);
-    } catch (e) {
-        console.warn(`Failed loading shop Nobuy index: ${e}`);
-        shopNobuyProductIndexes = new Set();
-    }
-    await Promise.all(shopDatas.map(p => p.then(data => parseApiShopData(data))));
-
-    if (progressbar instanceof HTMLProgressElement) {
-        progressbar.value = 0;
-        progressbar.max = gachas.size + 4;
-    }
-    const gacha_items: [Promise<string>, Gacha, string][] = [];
-    for (const [, gacha] of gachas) {
-        const gacha_url = `${gachaSource}/Ini3_Lot_${`${gacha.gacha_index}`.padStart(2, "0")}.xml`;
-        gacha_items.push([download(gacha_url), gacha, gacha_url]);
-    }
-    parseGuardianData(await guardianData);
-    try {
-        applyProductStageDrops(JSON.parse(await productStageDropsData) as ProductStageDropsCatalog);
-    } catch (e) {
-        console.warn(`Failed loading product stage drops: ${e}`);
-    }
-    for (const [item, gacha, gacha_url] of gacha_items) {
-        try {
-            parseGachaData(await item, gacha);
-        } catch (e) {
-            console.warn(`Failed downloading ${gacha_url} because ${e}`);
-        }
-    }
+    hydrateCatalog(JSON.parse(await download("assets/catalog.json")) as unknown);
 }
 
 /** Ban/circle-slash icon for exclude — outline SVG, recolored via currentColor. */

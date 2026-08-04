@@ -86,13 +86,13 @@ test("equipment results wire full priority ordering instead of winner-only subse
         Bun.file(new URL("./priority.ts", import.meta.url)).text(),
     ]);
 
-    expect(lookup).toContain('sstokic-tgm/JFTSE/development/auth-server/src/main/resources/res');
-    expect(lookup).toContain("/Item_Parts_Ini3.xml");
+    expect(lookup).toContain(
+        'hydrateCatalog(JSON.parse(await download("assets/catalog.json")) as unknown)',
+    );
+    expect(lookup).toContain("priorizer.sortAll");
     expect(lookup).toContain("Matching equipment globally ranked by selected stat priority");
     expect(lookup).not.toContain("Best matching equipment by slot and selected stat priority");
     expect(main).toContain("createPriorityRanker(comparators)");
-    // Winner-only early returns must not remain in the ranking helper.
-    expect(priority).not.toMatch(/if \(result < 0\) \{[\s\S]*?return \[candidate\];/);
-    expect(priority).not.toMatch(/if \(result > 0\) \{[\s\S]*?return current;/);
-    expect(priority).toContain("insertAt");
+    expect(priority).toContain(".sort((lhs, rhs)");
+    expect(priority).toContain("lhs.index - rhs.index");
 });
