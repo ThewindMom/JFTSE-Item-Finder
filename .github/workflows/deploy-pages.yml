@@ -36,6 +36,16 @@ jobs:
           mkdir _site
           cp index.html style.css favicon.ico script.js _site/
 
+      - name: Download shop snapshots
+        run: |
+          mkdir _site/shop
+          for page in {0..19}; do
+            curl --fail --silent --show-error \
+              "https://jftse.com/jftse-restservice/api/shop?size=1000&page=${page}" \
+              --output "_site/shop/${page}.json"
+            jq empty "_site/shop/${page}.json"
+          done
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
 

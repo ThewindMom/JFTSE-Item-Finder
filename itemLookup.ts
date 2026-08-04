@@ -698,8 +698,10 @@ export async function downloadItems() {
     const itemData = download(itemURL);
     //const shopURL = itemSource + "/Shop_Ini3.xml";
     const max_shop_pages = 20; //currently need only 10, should be enough
-    const shopURL = "https://jftse.com/jftse-restservice/api/shop?size=1000&page=";
-    const shopDatas = [...Array(max_shop_pages).keys()].map(n => download(`${shopURL}${n}`));
+    const shopURLs = location.hostname.endsWith(".github.io")
+        ? [...Array(max_shop_pages).keys()].map(n => new URL(`shop/${n}.json`, document.baseURI).href)
+        : [...Array(max_shop_pages).keys()].map(n => `https://jftse.com/jftse-restservice/api/shop?size=1000&page=${n}`);
+    const shopDatas = shopURLs.map(download);
     const guardianURL = guardianSource + "/GuardianStages.json";
     const guardianData = download(guardianURL);
     parseItemData(await itemData);
