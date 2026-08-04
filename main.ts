@@ -3,7 +3,13 @@ import { createPopupLink, downloadItems, getResultsTablePlan, Item, ItemSource, 
 import { createHTML } from './html';
 import { createPriorityRanker } from './priority';
 import { browserFrameScheduler, ProgressiveBatchRenderer } from './progressiveRender';
+import {
+    parseExcludedItemIdToken,
+    serializeExcludedItemIds,
+} from './selectionState';
 import { Variable_storage } from './storage';
+
+export { parseExcludedItemIdToken } from './selectionState';
 
 const partsFilter = [
     "Parts", [
@@ -41,18 +47,6 @@ const availabilityFilter = [
 ];
 
 const excluded_item_ids = new Set<number>();
-
-/** Digits-only safe-integer parse for excluded_item_ids localStorage tokens. */
-export function parseExcludedItemIdToken(token: string): number | undefined {
-    if (!/^\d+$/.test(token)) {
-        return undefined;
-    }
-    const id = Number(token);
-    if (!Number.isSafeInteger(id)) {
-        return undefined;
-    }
-    return id;
-}
 
 function addFilterTrees() {
     const target = document.getElementById("characterFilters");
@@ -487,7 +481,10 @@ function saveSelection() {
         Variable_storage.set_variable("itemTypeSelector", getItemTypeSelection());
     }
 
-    Variable_storage.set_variable("excluded_item_ids", Array.from(excluded_item_ids).join(","));
+    Variable_storage.set_variable(
+        "excluded_item_ids",
+        serializeExcludedItemIds(excluded_item_ids),
+    );
 }
 
 function restoreSelection() {

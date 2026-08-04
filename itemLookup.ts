@@ -2,18 +2,33 @@ import { createHTML } from './html';
 import {
     prettyGuardianMapName,
     projectGachaAcquisitionChannels,
-    resolveMapArtFile,
     stageChannelLabel,
     stageTitleName,
     type GachaSourceInput,
     type MapArtCatalog,
 } from './gachaAcquisition';
+import {
+    characters,
+    gachas,
+    Gacha,
+    GachaItemSource,
+    GuardianItemSource,
+    installItemDomainState,
+    isCharacter,
+    Item,
+    items,
+    ItemSource,
+    shop_items,
+    ShopItemSource,
+    type Character,
+    type Part,
+} from './itemDomain';
 import { priorityStatHeaderDisplay } from './priorityStatHeaders';
 import {
     mergePriorityRankings,
     type PriorityRanker,
 } from './priority';
-import { parseCatalogV1 } from './catalog';
+import { hydrateCatalogState } from './catalogHydration';
 import {
     projectStageBosses,
     type StageBossCatalog,
@@ -30,61 +45,20 @@ export {
     projectStageBosses,
 } from './stageBosses';
 
-export const characters = ["Niki", "LunLun", "Lucy", "Shua", "Dhanpir", "Pochi", "Al"] as const;
-export type Character = typeof characters[number];
-export function isCharacter(character: string): character is Character {
-    return (characters as unknown as string[]).includes(character);
-}
-
-export type Part = "Hat" | "Hair" | "Dye" | "Upper" | "Lower" | "Shoes" | "Socks" | "Hand" | "Backpack" | "Face" | "Racket" | "Other";
-
-export class ItemSource {
-    constructor(readonly shop_id: number) { }
-
-    get requiresGuardian(): boolean {
-        if (this instanceof ShopItemSource) {
-            return false;
-        }
-        else if (this instanceof GachaItemSource) {
-            return [...this.item.sources.values()].every(source => source.requiresGuardian);
-        }
-        else if (this instanceof GuardianItemSource) {
-            return true;
-        }
-        else {
-            throw "Internal error";
-        }
-    }
-
-    get item() {
-        const item = shop_items.get(this.shop_id);
-        if (!item) {
-            console.error(`Failed finding item of itemSource ${this.shop_id}`);
-            throw "Internal error";
-        }
-        return item;
-    }
-}
-
-export class ShopItemSource extends ItemSource {
-    constructor(shop_id: number, readonly price: number, readonly ap: boolean, readonly items: Item[]) {
-        super(shop_id);
-    }
-}
-
-export class GachaItemSource extends ItemSource {
-    constructor(shop_id: number) {
-        super(shop_id);
-    }
-
-    gachaTries(item: Item, character?: Character) {
-        const gacha = gachas.get(this.shop_id);
-        if (!gacha) {
-            throw "Internal error";
-        }
-        return gacha.average_tries(item, character);
-    }
-}
+export {
+    characters,
+    gachas,
+    Gacha,
+    GachaItemSource,
+    GuardianItemSource,
+    isCharacter,
+    Item,
+    items,
+    ItemSource,
+    shop_items,
+    ShopItemSource,
+} from './itemDomain';
+export type { Character, Part } from './itemDomain';
 
 export type GachaEconomics =
     | {
@@ -123,169 +97,6 @@ export function projectGachaEconomics(
     };
 }
 
-export class GuardianItemSource extends ItemSource {
-    constructor(
-        readonly guardian_map: string,
-        readonly items: Item[],
-        readonly xp: number,
-        readonly need_boss: boolean,
-        readonly boss_time: number) {
-        super(GuardianItemSource.guardian_map_id(guardian_map));
-    }
-
-    static guardian_map_id(map: string) {
-        let index = this.guardian_maps.indexOf(map);
-        if (index === -1) {
-            index = this.guardian_maps.length;
-            this.guardian_maps.push(map);
-        }
-        return -index;
-    }
-
-    private static guardian_maps = [""];
-}
-
-export class Item {
-    id = 0;
-    name_kr = "";
-    name_en = "";
-    useType = "";
-    maxUse = 0;
-    hidden = false;
-    resist = "";
-    character?: Character;
-    part: Part = "Other";
-    level = 0;
-    str = 0;
-    sta = 0;
-    dex = 0;
-    wil = 0;
-    hp = 0;
-    quickslots = 0;
-    buffslots = 0;
-    smash = 0;
-    movement = 0;
-    charge = 0;
-    lob = 0;
-    serve = 0;
-    max_str = 0;
-    max_sta = 0;
-    max_dex = 0;
-    max_wil = 0;
-    element_enchantable = false;
-    parcel_enabled = false;
-    spin = 0;
-    atss = 0;
-    dfss = 0;
-    socket = 0;
-    gauge = 0;
-    gauge_battle = 0;
-    sources: ItemSource[] = [];
-    statFromString(name: string): number {
-        switch (name) {
-            case "Mov Speed":
-                return this.movement;
-            case "Charge":
-                return this.charge;
-            case "Lob":
-                return this.lob;
-            case "Smash":
-                return this.smash;
-            case "Str":
-                return this.str;
-            case "Dex":
-                return this.dex;
-            case "Sta":
-                return this.sta;
-            case "Will":
-                return this.wil;
-            case "Max Str":
-                return this.max_str;
-            case "Max Dex":
-                return this.max_dex;
-            case "Max Sta":
-                return this.max_sta;
-            case "Max Will":
-                return this.max_wil;
-            case "Serve":
-                return this.serve;
-            case "Quickslots":
-                return this.quickslots;
-            case "Buffslots":
-                return this.buffslots;
-            case "HP":
-                return this.hp;
-            default:
-                throw "Internal error";
-        }
-    }
-}
-
-export class Gacha {
-    constructor(
-        readonly shop_index: number,
-        readonly gacha_index: number,
-        readonly name: string,
-        readonly price: number = 0,
-        readonly ap: boolean = false,
-        /** Listed in the live shop catalog (`enabled`). */
-        readonly enabled: boolean = false,
-        /**
-         * Can be purchased with Gold/AP. False when Shop_Ini3 `Nobuy≠0`
-         * even if the catalog still lists the product as enabled.
-         */
-        readonly purchasable: boolean = true,
-    ) {
-        for (const character of characters) {
-            this.shop_items.set(character, new Map<Item, [/*probability:*/ number, /*quantity_min:*/ number, /*quantity_max:*/ number]>())
-        }
-    }
-
-    add(item: Item, probability: number, character: Character, quantity_min: number, quantity_max: number) {
-        if (item.character && item.character !== character) {
-            // Lottery files list every character's gear under each LotteryItem_* block.
-            // Route the entry to the item's owning character so filters stay meaningful.
-            character = item.character;
-        }
-        const map = this.shop_items.get(character)!;
-        const previous = map.get(item);
-        // Same Item can appear once per character-block (e.g. 7× Dragon Armor at 1%).
-        // Accumulate ChansPer instead of overwriting — otherwise rates stay stuck at 1%
-        // while character_probability still sums to 100 (map tickets ≪ pool total).
-        if (previous) {
-            map.set(item, [
-                previous[0] + probability,
-                Math.min(previous[1], quantity_min),
-                Math.max(previous[2], quantity_max),
-            ]);
-        }
-        else {
-            map.set(item, [probability, quantity_min, quantity_max]);
-        }
-        this.character_probability.set(character, probability + (this.character_probability.get(character) || 0));
-    }
-
-    average_tries(item: Item, character: Character | undefined = undefined) {
-        const chars: readonly Character[] = character ? ([character]) : characters;
-        const probability = chars.reduce((p, character) => p + (this.shop_items.get(character)!.get(item)?.[0] || 0), 0);
-        if (probability === 0) {
-            return 0;
-        }
-        const total_probability = chars.reduce((p, character) => p + this.character_probability.get(character)!, 0);
-        return total_probability / probability;
-    }
-
-    get total_probability() {
-        return characters.reduce((p, character) => p + this.character_probability.get(character)!, 0);
-    }
-
-    character_probability = new Map<Character, number>();
-    shop_items = new Map<Character, Map<Item, [/*probability:*/ number, /*quantity_min:*/ number, /*quantity_max:*/ number]>>();
-}
-
-export let items = new Map<number, Item>();
-export let shop_items = new Map<number, Item>();
-export let gachas = new Map<number, Gacha>();
 let dialog: HTMLDialogElement | undefined;
 type ItemArtEntry = [sheet: string, cell: number];
 type ItemArtSheet = {
@@ -316,99 +127,8 @@ type BossArtCatalog = {
 let bossArtCatalog: BossArtCatalog = {};
 
 export function hydrateCatalog(input: unknown): void {
-    const catalog = parseCatalogV1(input);
-    const nextItems = new Map<number, Item>();
-    for (const value of catalog.items) {
-        const item = new Item();
-        const { character, ...fields } = value;
-        Object.assign(item, fields);
-        item.character = character ?? undefined;
-        nextItems.set(item.id, item);
-    }
-
-    const nextShopItems = new Map<number, Item>();
-    for (const product of catalog.products) {
-        const innerItems = product.itemIds.map(id => nextItems.get(id)!);
-        if (product.kind === "parts" && innerItems.length === 1) {
-            nextShopItems.set(product.productIndex, innerItems[0]);
-            continue;
-        }
-        const productItem = new Item();
-        productItem.id = product.productIndex;
-        productItem.name_en = product.name;
-        nextShopItems.set(product.productIndex, productItem);
-    }
-
-    for (const product of catalog.products) {
-        if (!product.purchasable) {
-            continue;
-        }
-        const innerItems = product.itemIds.map(id => nextItems.get(id)!);
-        const source = new ShopItemSource(
-            product.productIndex,
-            product.price,
-            product.ap,
-            innerItems,
-        );
-        if (product.kind === "parts") {
-            for (const item of innerItems) {
-                item.sources.push(source);
-            }
-        }
-        const productItem = nextShopItems.get(product.productIndex);
-        if (product.kind === "lottery" && productItem) {
-            productItem.sources.push(source);
-        }
-    }
-
-    const products = new Map(catalog.products.map(product =>
-        [product.productIndex, product] as const
-    ));
-    const nextGachas = new Map<number, Gacha>();
-    for (const value of catalog.gachas) {
-        const product = products.get(value.productIndex)!;
-        const gacha = new Gacha(
-            product.productIndex,
-            product.gachaIndex!,
-            product.name,
-            product.price,
-            product.ap,
-            product.enabled,
-            product.purchasable,
-        );
-        for (const drop of value.drops) {
-            gacha.add(
-                nextShopItems.get(drop.shopProductIndex)!,
-                drop.probability,
-                drop.character,
-                drop.quantityMin,
-                drop.quantityMax,
-            );
-        }
-        for (const [, characterItems] of gacha.shop_items) {
-            for (const [item] of characterItems) {
-                item.sources.push(new GachaItemSource(gacha.shop_index));
-            }
-        }
-        nextGachas.set(gacha.shop_index, gacha);
-    }
-
-    for (const value of catalog.stageSources) {
-        const attached = nextShopItems.get(value.attachedProductIndex)!;
-        const rewards = value.rewardProductIndexes
-            .map(id => nextShopItems.get(id)!);
-        attached.sources.push(new GuardianItemSource(
-            value.map,
-            rewards,
-            value.xp,
-            value.needBoss,
-            value.bossTime,
-        ));
-    }
-
-    items = nextItems;
-    shop_items = nextShopItems;
-    gachas = nextGachas;
+    const catalog = hydrateCatalogState(input);
+    installItemDomainState(catalog);
     itemArtMap = catalog.art.item;
     mapArtMap = catalog.art.map;
     stageBossCatalog = catalog.art.stageBoss;
