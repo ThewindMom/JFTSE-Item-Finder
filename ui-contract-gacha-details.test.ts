@@ -126,12 +126,12 @@ test("labels each gacha coin Gold or AP and marks unavailable coins", async () =
     expect(renderer).toContain('class: "gacha-source-channel gacha-source-channel--guardian"');
     expect(renderer).toContain("Not available");
     expect(renderer).toContain("Not for sale");
-    expect(renderer).toContain("shop-nobuy-indexes.json");
-    expect(renderer).toContain("product-stage-drops.json");
+    expect(renderer).toContain("for (const product of catalog.products)");
+    expect(renderer).toContain("for (const value of catalog.stageSources)");
     expect(renderer).toContain("function applyProductStageDrops");
     expect(renderer).toContain("createGachaAcquisitionChannelElements(gacha)");
     expect(renderer).toMatch(
-        /new Gacha\(\s*apiItem\.productIndex,\s*apiItem\.item0,\s*apiItem\.name,\s*apiItem\.price0,\s*apiItem\.priceType === "MINT",\s*apiItem\.enabled,\s*purchasable,?\s*\)/,
+        /new Gacha\(\s*product\.productIndex,\s*product\.gachaIndex!,\s*product\.name,\s*product\.price,\s*product\.ap,\s*product\.enabled,\s*product\.purchasable,?\s*\)/,
     );
     expect(css).toMatch(/\.gacha-currency--gold[\s\S]*--jf-currency-gold/);
     expect(css).toMatch(/\.gacha-currency--ap[\s\S]*--jf-currency-ap/);

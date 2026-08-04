@@ -18,7 +18,7 @@ afterEach(() => {
     }
 });
 
-test("GitHub Pages loads same-origin shop snapshots", async () => {
+test("GitHub Pages loads one same-origin precomputed catalog", async () => {
     const requestedUrls = [];
     const pageUrl = "https://thewindmom.github.io/JFTSE-Item-Finder/";
 
@@ -41,8 +41,5 @@ test("GitHub Pages loads same-origin shop snapshots", async () => {
     const { downloadItems } = await import("./itemLookup.ts");
     void downloadItems();
 
-    const shopUrls = requestedUrls.filter(url => url.includes("/shop/"));
-    expect(shopUrls).toHaveLength(20);
-    expect(shopUrls[0]).toBe(`${pageUrl}shop/0.json`);
-    expect(shopUrls.every(url => url.startsWith(`${pageUrl}shop/`))).toBeTrue();
+    expect(requestedUrls).toEqual(["assets/catalog.json"]);
 });

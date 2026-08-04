@@ -58,14 +58,14 @@ test("stage details dialog is a dossier with map art and structured facts", asyn
     expect(renderer).toContain("stage-details__portrait");
     expect(renderer).toContain("stage-details__portrait-image");
     expect(renderer).toContain("assets/boss-art/");
-    expect(renderer).toContain('"assets/boss-art-map.json"');
+    expect(renderer).toContain("bossArtCatalog = catalog.art.boss");
     expect(renderer).toContain("createStageRewardArt");
     expect(renderer).toContain("stage-details__reward-art--coin");
     expect(renderer).toContain('class: "stage-details__rewards"');
     expect(renderer).toContain("stage-details__reward--current");
     expect(renderer).toContain("This item");
     expect(renderer).toContain('"stage-details-dialog"');
-    expect(renderer).toContain('"assets/stage-bosses.json"');
+    expect(renderer).toContain("stageBossCatalog = catalog.art.stageBoss");
     expect(renderer).toContain("projectStageBosses");
     expect(renderer).toContain("stage-details__bosses");
     // Map banner removed — boss portrait is the hero image.

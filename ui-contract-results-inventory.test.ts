@@ -34,11 +34,13 @@ test("renders authentic extracted client artwork when mapped", async () => {
         projectFile("./style.css"),
     ]);
 
-    expect(renderer).toContain('"assets/item-art-map.json"');
+    expect(renderer).toContain("itemArtMap = catalog.art.item");
+    expect(renderer).toContain('"assets/catalog.json"');
     expect(renderer).toContain('"item-art-thumbnail",');
     expect(renderer).toContain("class: className");
     expect(renderer).toContain('Official item art for ${item.name_en}');
     expect(server).toContain('"/assets/item-art-map.json"');
+    expect(server).toContain('"/assets/catalog.json"');
     expect(server).toContain('"/assets/item-art/:file"');
     expect(css).toMatch(/\.item-art-thumbnail[\s\S]*background-image/);
 
