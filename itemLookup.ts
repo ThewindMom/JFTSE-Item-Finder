@@ -9,7 +9,10 @@ import {
     type MapArtCatalog,
 } from './gachaAcquisition';
 import { priorityStatHeaderDisplay } from './priorityStatHeaders';
-import { mergePriorityRankings } from './priority';
+import {
+    mergePriorityRankings,
+    type PriorityRanker,
+} from './priority';
 import {
     projectStageBosses,
     type StageBossCatalog,
@@ -2061,10 +2064,13 @@ export type ResultsTablePlan = {
     createRow: (index: number) => HTMLTableRowElement,
 };
 
+type ItemPrioritizer = ((items: Item[], item: Item) => Item[]) &
+    Partial<Pick<PriorityRanker<Item>, "compare" | "sortAll">>;
+
 export function getResultsTablePlan(
     filter: (item: Item) => boolean,
     sourceFilter: (itemSource: ItemSource) => boolean,
-    priorizer: (items: Item[], item: Item) => Item[],
+    priorizer: ItemPrioritizer,
     priorityStats: string[],
     character?: Character): ResultsTablePlan {
     const results: { [key: string]: Item[] } = {
@@ -2083,8 +2089,13 @@ export function getResultsTablePlan(
 
     for (const [, item] of items) {
         if (filter(item)) {
-            results[item.part] = priorizer(results[item.part], item);
+            results[item.part].push(item);
         }
+    }
+    for (const [part, candidates] of Object.entries(results)) {
+        results[part] = priorizer.sortAll
+            ? priorizer.sortAll(candidates)
+            : candidates.reduce(priorizer, []);
     }
 
     const table = createHTML(
@@ -2241,10 +2252,16 @@ export function getResultsTablePlan(
         );
     }
 
-    const displayResults = mergePriorityRankings(
-        Object.values(results),
-        priorizer,
-    );
+    const comparator = priorizer.compare ?? ((lhs: Item, rhs: Item) => {
+        if (priorizer([lhs], rhs)[0] === rhs) {
+            return -1;
+        }
+        if (priorizer([rhs], lhs)[0] === lhs) {
+            return 1;
+        }
+        return 0;
+    });
+    const displayResults = mergePriorityRankings(Object.values(results), comparator);
     const rowInputs: { item: Item, character: Character }[] = [];
     for (const item of displayResults) {
         for (const char of item.character ? [item.character] : characters) {
@@ -2320,7 +2337,7 @@ export function getResultsTablePlan(
 export function getResultsTable(
     filter: (item: Item) => boolean,
     sourceFilter: (itemSource: ItemSource) => boolean,
-    priorizer: (items: Item[], item: Item) => Item[],
+    priorizer: ItemPrioritizer,
     priorityStats: string[],
     character?: Character): HTMLTableElement {
     const plan = getResultsTablePlan(

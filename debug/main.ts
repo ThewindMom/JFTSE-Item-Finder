@@ -1,7 +1,7 @@
 import { makeCheckboxTree, TreeNode, getLeafStates, setLeafStates } from './checkboxTree';
 import { createPopupLink, downloadItems, getResultsTablePlan, Item, ItemSource, getMaxItemLevel, items, Character, characters, isCharacter, ShopItemSource, GachaItemSource, getGachaTable } from './itemLookup';
 import { createHTML } from './html';
-import { selectByPriority } from './priority';
+import { createPriorityRanker } from './priority';
 import { browserFrameScheduler, ProgressiveBatchRenderer } from './progressiveRender';
 import { Variable_storage } from './storage';
 
@@ -771,7 +771,7 @@ function updateResults() {
                     plan: getResultsTablePlan(
                         item => filters.every(filter => filter(item)),
                         itemSource => sourceFilters.every(filter => filter(itemSource)),
-                        (items, item) => selectByPriority(items, item, comparators),
+                        createPriorityRanker(comparators),
                         priorityStats,
                         selectedCharacter,
                     ),
