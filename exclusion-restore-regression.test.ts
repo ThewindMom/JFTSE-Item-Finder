@@ -14,7 +14,9 @@ import { Variable_storage } from "./storage";
  */
 test("restoreSelection rehydrates excluded_item_ids before save-capable event dispatches", async () => {
     const main = await Bun.file(new URL("./main.ts", import.meta.url)).text();
-    const restoreMatch = main.match(/function restoreSelection\(\) \{[\s\S]*?\n\}\n\nfunction updateResults/);
+    const restoreMatch = main.match(
+        /function restoreSelection\(\) \{[\s\S]*?\n\}\n\n(?=const INITIAL_RESULT_ROWS|function updateResults)/,
+    );
     expect(restoreMatch).not.toBeNull();
     const restoreBody = restoreMatch![0];
 

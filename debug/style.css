@@ -401,7 +401,7 @@ dialog button:hover {
     width: min(100%, var(--jf-shell-max));
     margin-inline: auto;
     padding: 0 var(--jf-space-6) var(--jf-space-10);
-    align-items: start;
+    align-items: stretch;
 }
 
 .finder-workspace > * {
@@ -410,14 +410,13 @@ dialog button:hover {
 
 .control-rail {
     grid-area: rail;
-    position: sticky;
-    top: 76px;
+    position: static;
     display: grid;
+    align-content: start;
     gap: var(--jf-space-3);
     min-width: 0;
-    max-height: calc(100vh - 96px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-height: none;
+    overflow-y: visible;
     scrollbar-color: var(--jf-border-strong) transparent;
     scrollbar-width: thin;
 }
@@ -1000,8 +999,11 @@ ul.layout label {
 .results-panel {
     grid-area: results;
     position: relative;
+    display: flex;
+    flex-direction: column;
     isolation: isolate;
     min-width: 0;
+    min-height: 0;
     padding: 0;
     overflow: hidden;
     border-radius: var(--jf-radius-xl);
@@ -1015,12 +1017,6 @@ ul.layout label {
     background: linear-gradient(90deg, var(--jf-accent), var(--jf-world-glow), transparent 78%);
     content: "";
     pointer-events: none;
-}
-
-@media (min-width: 1200px) {
-    .results-panel {
-        min-height: 560px;
-    }
 }
 
 .results-panel__header {
@@ -1176,7 +1172,9 @@ ul.layout label {
 .table-scroll-shell {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
+    flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
     max-width: 100%;
     border-top: 1px solid var(--jf-border-subtle);
     background: var(--jf-surface);
@@ -1234,10 +1232,13 @@ ul.layout label {
 
 .table-scroll {
     max-width: 100%;
-    max-height: min(70vh, calc(100dvh - 14rem));
+    height: 100%;
+    min-height: min(12rem, 40vh);
+    max-height: 100%;
     overflow-x: auto;
     overflow-y: auto;
     overscroll-behavior-inline: contain;
+    overscroll-behavior-y: contain;
     scrollbar-color: var(--jf-border-strong) var(--jf-surface-inset);
     scrollbar-width: thin;
 }
@@ -1259,6 +1260,28 @@ ul.layout label {
     place-items: center;
     color: var(--jf-text-muted);
     text-align: center;
+}
+
+.results-load-more td {
+    padding: var(--jf-space-4);
+    text-align: center;
+    background: var(--jf-surface-raised);
+}
+
+.results-load-more__button {
+    min-height: 44px;
+    padding: var(--jf-space-2) var(--jf-space-5);
+    border: 1px solid var(--jf-accent);
+    border-radius: var(--jf-radius-pill);
+    color: var(--jf-ink-strong);
+    background: var(--jf-accent-wash);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.results-load-more__button:hover {
+    background: var(--jf-accent-soft);
 }
 
 table {
@@ -2342,6 +2365,47 @@ dialog {
     backdrop-filter: blur(20px) saturate(120%);
 }
 
+.gacha-probability-dialog {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    padding: 0;
+    overflow: hidden;
+}
+
+.gacha-probability-dialog__scroll {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.gacha-probability-dialog__scroll table {
+    width: 100%;
+}
+
+.gacha-probability-dialog > .gacha-probability-dialog__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: end;
+    gap: var(--jf-space-2);
+    min-width: 8rem;
+    min-height: 44px;
+    margin: var(--jf-space-3);
+    border: 1px solid var(--jf-accent-strong);
+    border-radius: var(--jf-radius-pill);
+    background:
+        linear-gradient(135deg, var(--jf-accent-strong), var(--jf-accent));
+    color: var(--jf-text-on-accent);
+    font-weight: 800;
+    box-shadow: 0 8px 20px var(--jf-accent-glow);
+}
+
+.gacha-probability-dialog > .gacha-probability-dialog__close::before {
+    content: "×";
+    font-size: 1.1em;
+    line-height: 1;
+}
+
 dialog::backdrop {
     background: var(--jf-overlay);
     backdrop-filter: blur(5px);
@@ -2387,6 +2451,12 @@ dialog button {
 
 .site-footer p {
     margin: 0;
+}
+
+@media (min-width: 880px) {
+    .results-panel {
+        contain: size;
+    }
 }
 
 @media (max-width: 1199px) and (min-width: 880px) {
@@ -2650,6 +2720,8 @@ dialog button {
     }
 
     .table-scroll {
+        height: auto;
+        min-height: 0;
         max-height: none;
         overflow-x: visible;
         overflow-y: visible;
@@ -2677,6 +2749,12 @@ dialog button {
         display: grid;
         gap: var(--jf-space-3);
         padding: var(--jf-space-3);
+    }
+
+    #results .results-load-more,
+    #results .results-load-more td {
+        display: block;
+        width: 100%;
     }
 
     .result-row {

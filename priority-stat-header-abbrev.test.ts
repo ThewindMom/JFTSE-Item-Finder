@@ -113,6 +113,12 @@ test("results table headers show MS/QS/BS with clickable full-name popups", asyn
             /Mov Speed|Quick Slots|Buff Slots/,
         );
     }
+    const sortedHeaders = headerRow!
+        .getElementsByTagName("th")
+        .filter((cell) => cell.getAttribute("aria-sort") !== null);
+    expect(sortedHeaders).toHaveLength(1);
+    expect(sortedHeaders[0].getAttribute("aria-sort")).toBe("descending");
+    expect(sortedHeaders[0].textContent).toBe("MS");
 
     const body = table.tBodies[0];
     const numericCells = body

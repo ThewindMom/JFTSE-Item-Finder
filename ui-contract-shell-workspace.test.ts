@@ -52,12 +52,30 @@ test("presents a task-first finder workspace", async () => {
     expect(html).toContain('class="control-rail" id="controlRail"');
     expect(html.indexOf('id="results_group"')).toBeLessThan(html.indexOf('id="controlRail"'));
     expect(html).toContain('id="resetFilters"');
-    expect(html).toContain("Updates instantly");
+    expect(html).toContain("Updates automatically");
     expect(css).toMatch(
         /\.finder-workspace[\s\S]*grid-template-columns:\s*minmax\(18rem,\s*20rem\)\s+minmax\(0,\s*1fr\)/,
     );
     expect(css).not.toMatch(
         /grid-template-columns:\s*minmax\(18rem,\s*20rem\)\s+minmax\(14rem,\s*17rem\)/,
+    );
+});
+
+test("uses one matched desktop frame without a scrolling filter rail", async () => {
+    const css = await projectFile("./style.css");
+    const workspaceRule = css.match(/\.finder-workspace\s*\{[^}]*\}/)?.[0];
+    const railRule = css.match(/\.control-rail\s*\{[^}]*\}/)?.[0];
+    const resultsRule = css.match(/\.results-panel\s*\{[^}]*\}/)?.[0];
+
+    expect(workspaceRule).toContain("align-items: stretch");
+    expect(railRule).toContain("position: static");
+    expect(railRule).toContain("overflow-y: visible");
+    expect(railRule).not.toContain("max-height: calc(100vh");
+    expect(resultsRule).toContain("display: flex");
+    expect(resultsRule).toContain("flex-direction: column");
+    expect(resultsRule).not.toContain("contain: size");
+    expect(css).toMatch(
+        /@media\s*\(min-width:\s*880px\)\s*\{[\s\S]*?\.results-panel\s*\{[^}]*contain:\s*size;/,
     );
 });
 

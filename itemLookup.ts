@@ -9,6 +9,7 @@ import {
     type MapArtCatalog,
 } from './gachaAcquisition';
 import { priorityStatHeaderDisplay } from './priorityStatHeaders';
+import { mergePriorityRankings } from './priority';
 import {
     projectStageBosses,
     type StageBossCatalog,
@@ -1067,16 +1068,24 @@ export function createPopupLink(
     return button;
 }
 
-function createPriorityStatHeaderCell(stat: string): HTMLTableCellElement {
+function createPriorityStatHeaderCell(
+    stat: string,
+    primary: boolean,
+): HTMLTableCellElement {
     const { short, full, abbreviated } = priorityStatHeaderDisplay(stat);
+    const attributes = {
+        class: "numeric",
+        scope: "col",
+        ...(primary ? { "aria-sort": "descending" } : {}),
+    };
     if (!abbreviated) {
-        return createHTML(["th", { class: "numeric", scope: "col" }, short]);
+        return createHTML(["th", attributes, short]);
     }
     const popup = createPopupLink(short, createHTML(["p", full]));
     popup.setAttribute("title", full);
     popup.setAttribute("aria-label", full);
     popup.classList.add("priority-stat-header");
-    return createHTML(["th", { class: "numeric", scope: "col" }, popup]);
+    return createHTML(["th", attributes, popup]);
 }
 
 function quantityString(quantity_min: number, quantity_max: number) {
@@ -1190,9 +1199,20 @@ function createGachaSourcePopup(item: Item | undefined, itemSource: ItemSource, 
     if (!gacha) {
         throw "Internal error";
     }
+    const probabilityTable = createHTML([
+        "div",
+        {
+            class: "gacha-probability-dialog__scroll",
+            role: "region",
+            tabindex: "0",
+            "aria-label": `${itemSource.item.name_en} probabilities`,
+        },
+        createGachaDetailsTable(gacha, item, character),
+    ]);
     return createPopupLink(
         itemSource.item.name_en,
-        createGachaDetailsTable(gacha, item, character),
+        probabilityTable,
+        "gacha-probability-dialog",
     );
 }
 
@@ -2035,12 +2055,18 @@ export function getGachaTable(filter: (item: Item) => boolean, char?: Character)
     return table;
 }
 
-export function getResultsTable(
+export type ResultsTablePlan = {
+    table: HTMLTableElement,
+    totalRows: number,
+    createRow: (index: number) => HTMLTableRowElement,
+};
+
+export function getResultsTablePlan(
     filter: (item: Item) => boolean,
     sourceFilter: (itemSource: ItemSource) => boolean,
     priorizer: (items: Item[], item: Item) => Item[],
     priorityStats: string[],
-    character?: Character): HTMLTableElement {
+    character?: Character): ResultsTablePlan {
     const results: { [key: string]: Item[] } = {
         "Hat": [],
         "Hair": [],
@@ -2063,14 +2089,16 @@ export function getResultsTable(
 
     const table = createHTML(
         ["table",
-            ["caption", "Matching equipment by slot and selected stat priority"],
+            ["caption", "Matching equipment globally ranked by selected stat priority"],
             ["thead",
                 ["tr",
                     ["th", { class: "Name_column", scope: "col" }, "Item"],
                     ["th", { class: "Art_column", scope: "col" }, "Art"],
                     ["th", { class: "Character_column", scope: "col" }, "Character"],
                     ["th", { class: "Part_column", scope: "col" }, "Part"],
-                    ...priorityStats.map((stat) => createPriorityStatHeaderCell(stat)),
+                    ...priorityStats.map((stat, index) =>
+                        createPriorityStatHeaderCell(stat, index === 0)
+                    ),
                     ["th", { class: "Level_column numeric", scope: "col" }, "Level"],
                     ["th", { class: "Source_column", scope: "col" }, "Source"],
                 ],
@@ -2078,11 +2106,6 @@ export function getResultsTable(
             ["tbody"],
         ]
     );
-    const tableBody = table.tBodies[0];
-    if (!tableBody) {
-        throw "Internal error";
-    }
-
     type MapOptions = { [key: string]: number[] };
 
     type Cost = {
@@ -2210,20 +2233,27 @@ export function getResultsTable(
 
         statistics.Level = Math.max(result[0].level, statistics.Level);
 
-        for (const item of result) {
-            for (const char of item.character ? [item.character] : characters) {
-                statistics.characters.add(char)
-                tableBody.appendChild(itemToTableRow(item, sourceFilter, priorityStats, char));
-            }
-        }
         // Footer cost must match stats/level: best candidate per slot only.
-        // The body still renders the full ranked list above.
+        // The body still renders the full globally ranked list below.
         statistics.cost = combineCosts(
             costOf(result[0], character && isCharacter(character) ? character : undefined),
             statistics.cost,
         );
     }
 
+    const displayResults = mergePriorityRankings(
+        Object.values(results),
+        priorizer,
+    );
+    const rowInputs: { item: Item, character: Character }[] = [];
+    for (const item of displayResults) {
+        for (const char of item.character ? [item.character] : characters) {
+            statistics.characters.add(char)
+            rowInputs.push({ item, character: char });
+        }
+    }
+
+    const hiddenColumnClasses: string[] = [];
     if (statistics.characters.size === 1) {
         const total_sources: string[] = [];
         if (statistics.cost.gold > 0) {
@@ -2247,25 +2277,67 @@ export function getResultsTable(
                 ["td", { class: "total Source_column" }, total_sources.join(", ")],
             ],
         ]));
-        for (const column_element of table.getElementsByClassName(`Character_column`)) {
-            if (!(column_element instanceof HTMLElement)) {
-                continue;
-            }
-            column_element.hidden = true;
-        }
+        hiddenColumnClasses.push("Character_column");
     }
 
     for (const attribute of priorityStats) {
         if (priorityStatistics[attribute] === 0) {
-            for (const column_element of table.getElementsByClassName(`${attribute}_column`)) {
-                if (!(column_element instanceof HTMLElement)) {
-                    continue;
-                }
-                column_element.hidden = true;
-            }
+            hiddenColumnClasses.push(`${attribute}_column`);
         }
     }
-    return table;
+
+    const hideColumns = (root: HTMLElement) => {
+        for (const className of hiddenColumnClasses) {
+            for (const columnElement of root.getElementsByClassName(className)) {
+                if (columnElement instanceof HTMLElement) {
+                    columnElement.hidden = true;
+                }
+            }
+        }
+    };
+    hideColumns(table);
+
+    return {
+        table,
+        totalRows: rowInputs.length,
+        createRow(index: number) {
+            const input = rowInputs[index];
+            if (!input) {
+                throw new RangeError(`Result row ${index} is out of range`);
+            }
+            const row = itemToTableRow(
+                input.item,
+                sourceFilter,
+                priorityStats,
+                input.character,
+            );
+            hideColumns(row);
+            return row;
+        },
+    };
+}
+
+export function getResultsTable(
+    filter: (item: Item) => boolean,
+    sourceFilter: (itemSource: ItemSource) => boolean,
+    priorizer: (items: Item[], item: Item) => Item[],
+    priorityStats: string[],
+    character?: Character): HTMLTableElement {
+    const plan = getResultsTablePlan(
+        filter,
+        sourceFilter,
+        priorizer,
+        priorityStats,
+        character,
+    );
+    const tableBody = plan.table.tBodies[0];
+    if (!tableBody) {
+        throw "Internal error";
+    }
+    for (let index = 0; index < plan.totalRows; index += 1) {
+        tableBody.appendChild(plan.createRow(index));
+    }
+    return plan.table;
 }
 
 export function getMaxItemLevel() {

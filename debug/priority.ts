@@ -39,3 +39,41 @@ export function selectByPriority<T>(
         ...current.slice(insertAt),
     ];
 }
+
+/**
+ * Merge independently ranked runs into one stable best-first ranking.
+ * Each input must already use the same `priorizer` ordering.
+ */
+export function mergePriorityRankings<T>(
+    rankings: readonly (readonly T[])[],
+    priorizer: (current: T[], candidate: T) => T[],
+): T[] {
+    const cursors = rankings.map(() => 0);
+    const merged: T[] = [];
+
+    while (true) {
+        let winnerRun = -1;
+        for (let run = 0; run < rankings.length; run += 1) {
+            if (cursors[run] >= rankings[run].length) {
+                continue;
+            }
+            if (winnerRun === -1) {
+                winnerRun = run;
+                continue;
+            }
+
+            const winner = rankings[winnerRun][cursors[winnerRun]];
+            const challenger = rankings[run][cursors[run]];
+            if (priorizer([winner], challenger)[0] === challenger) {
+                winnerRun = run;
+            }
+        }
+
+        if (winnerRun === -1) {
+            return merged;
+        }
+
+        merged.push(rankings[winnerRun][cursors[winnerRun]]);
+        cursors[winnerRun] += 1;
+    }
+}

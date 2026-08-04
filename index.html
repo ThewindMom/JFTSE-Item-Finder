@@ -100,7 +100,7 @@
             <fieldset class="panel filter-panel" id="filter_group">
                 <legend>Refine equipment</legend>
                 <div class="rail-actions">
-                    <p id="refinementStatus" class="refinement-status" role="status">Updates instantly</p>
+                    <p id="refinementStatus" class="refinement-status" role="status">Updates automatically</p>
                     <button id="resetFilters" class="text-action" type="button">Reset filters</button>
                 </div>
 
@@ -168,9 +168,9 @@
             <fieldset class="panel priority-panel" id="priority_group">
                 <legend id="priority_legend">Result ranking</legend>
                 <details class="ranking-disclosure">
-                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed first within each slot</span></summary>
+                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed ranks all equipment</span></summary>
                     <div class="disclosure-content">
-                        <p class="panel-intro">Use the arrows or drag to rank items within each equipment slot.</p>
+                        <p class="panel-intro">Use the arrows or drag to rank all matching equipment. Build totals still choose one best item per slot.</p>
                         <ol id="priority_list" aria-label="Item stat priority">
                             <li class="dropzone" draggable="true">
                                 <span class="priority-stat-label">Mov Speed</span>

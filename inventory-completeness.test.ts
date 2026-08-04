@@ -88,7 +88,7 @@ test("equipment results wire full priority ordering instead of winner-only subse
 
     expect(lookup).toContain('sstokic-tgm/JFTSE/development/auth-server/src/main/resources/res');
     expect(lookup).toContain("/Item_Parts_Ini3.xml");
-    expect(lookup).toContain("Matching equipment by slot and selected stat priority");
+    expect(lookup).toContain("Matching equipment globally ranked by selected stat priority");
     expect(lookup).not.toContain("Best matching equipment by slot and selected stat priority");
     expect(main).toContain("selectByPriority(items, item, comparators)");
     // Winner-only early returns must not remain in the ranking helper.

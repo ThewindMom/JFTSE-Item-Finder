@@ -1,7 +1,8 @@
 import { makeCheckboxTree, TreeNode, getLeafStates, setLeafStates } from './checkboxTree';
-import { createPopupLink, downloadItems, getResultsTable, Item, ItemSource, getMaxItemLevel, items, Character, characters, isCharacter, ShopItemSource, GachaItemSource, getGachaTable } from './itemLookup';
+import { createPopupLink, downloadItems, getResultsTablePlan, Item, ItemSource, getMaxItemLevel, items, Character, characters, isCharacter, ShopItemSource, GachaItemSource, getGachaTable } from './itemLookup';
 import { createHTML } from './html';
 import { selectByPriority } from './priority';
+import { browserFrameScheduler, ProgressiveBatchRenderer } from './progressiveRender';
 import { Variable_storage } from './storage';
 
 const partsFilter = [
@@ -192,7 +193,7 @@ function syncRankingSummaryHint(list: HTMLOListElement): void {
     }
     const label = getPriorityStatLabel(top);
     if (label) {
-        hint.textContent = `${label} first within each slot`;
+        hint.textContent = `${label} ranks all equipment`;
     }
 }
 
@@ -570,13 +571,26 @@ function restoreSelection() {
     levelrange.dispatchEvent(new Event("input"));
 }
 
+const INITIAL_RESULT_ROWS = 24;
+const RESULT_ROWS_PER_REQUEST = 240;
+const MAX_RESULT_ROWS_PER_FRAME = 96;
+const RESULT_FRAME_BUDGET_MS = 8;
+let activeResultsRenderer: ProgressiveBatchRenderer<number, HTMLTableRowElement> | undefined;
+let activeResultsObserver: IntersectionObserver | undefined;
+let resultsRenderVersion = 0;
+
 function updateResults() {
     saveSelection();
     // While first-load lab prep is active, keep friendly loading copy — do not paint
     // an empty inventory ("No items match…") over the animated loader.
-    if (document.getElementById("results_group")?.getAttribute("aria-busy") === "true") {
+    if (document.getElementById("loading_group")?.getAttribute("aria-busy") === "true") {
         return;
     }
+    activeResultsRenderer?.cancel();
+    activeResultsRenderer = undefined;
+    activeResultsObserver?.disconnect();
+    activeResultsObserver = undefined;
+    const renderVersion = ++resultsRenderVersion;
     const filters: ((item: Item) => boolean)[] = [];
     const sourceFilters: ((itemSource: ItemSource) => boolean)[] = [];
     let selectedCharacter: Character | undefined;
@@ -749,18 +763,27 @@ function updateResults() {
         }
     }
 
-    const table = (() => {
+    const result = (() => {
         switch (getItemTypeSelection()) {
             case 'partsSelector':
-                return getResultsTable(
-                    item => filters.every(filter => filter(item)),
-                    itemSource => sourceFilters.every(filter => filter(itemSource)),
-                    (items, item) => selectByPriority(items, item, comparators),
-                    priorityStats,
-                    selectedCharacter
-                );
+                return {
+                    kind: "equipment" as const,
+                    plan: getResultsTablePlan(
+                        item => filters.every(filter => filter(item)),
+                        itemSource => sourceFilters.every(filter => filter(itemSource)),
+                        (items, item) => selectByPriority(items, item, comparators),
+                        priorityStats,
+                        selectedCharacter,
+                    ),
+                };
             case 'gachaSelector':
-                return getGachaTable(item => filters.every(filter => filter(item)), selectedCharacter);
+                return {
+                    kind: "gacha" as const,
+                    table: getGachaTable(
+                        item => filters.every(filter => filter(item)),
+                        selectedCharacter,
+                    ),
+                };
         }
     })();
 
@@ -768,25 +791,155 @@ function updateResults() {
     if (!target) {
         return;
     }
-    const resultRows = table.tBodies[0]?.rows.length ?? Math.max(0, table.rows.length - 1);
-    target.innerText = "";
-    if (resultRows === 0) {
-        target.appendChild(createHTML([
+    const resultsGroup = document.getElementById("results_group");
+    const resultsStatus = document.getElementById("resultsStatus");
+    const tableScroll = document.getElementById("tableScroll");
+    if (tableScroll instanceof HTMLElement) {
+        tableScroll.scrollTop = 0;
+    }
+
+    if (result.kind === "gacha") {
+        const resultRows = result.table.tBodies[0]?.rows.length
+            ?? Math.max(0, result.table.rows.length - 1);
+        target.replaceChildren();
+        if (resultRows === 0) {
+            target.appendChild(createHTML([
+                "p",
+                { class: "results-empty", role: "status" },
+                "No items match these filters.",
+            ]));
+        }
+        else {
+            target.appendChild(result.table);
+        }
+        if (resultsStatus) {
+            resultsStatus.textContent = resultRows === 0
+                ? "No items match these filters."
+                : `${resultRows} matching ${resultRows === 1 ? "item" : "items"}`;
+        }
+        resultsGroup?.setAttribute("aria-busy", "false");
+        resultsGroup?.setAttribute("data-render-state", "complete");
+        resultsGroup?.setAttribute("data-rendered-rows", `${resultRows}`);
+        resultsGroup?.setAttribute("data-total-rows", `${resultRows}`);
+        syncResultsTableScroll();
+        return;
+    }
+
+    const { plan } = result;
+    if (plan.totalRows === 0) {
+        target.replaceChildren(createHTML([
             "p",
             { class: "results-empty", role: "status" },
             "No items match these filters.",
         ]));
+        resultsStatus && (resultsStatus.textContent = "No items match these filters.");
+        resultsGroup?.setAttribute("aria-busy", "false");
+        resultsGroup?.setAttribute("data-render-state", "complete");
+        resultsGroup?.setAttribute("data-rendered-rows", "0");
+        resultsGroup?.setAttribute("data-total-rows", "0");
+        syncResultsTableScroll();
+        return;
     }
-    else {
-        target.appendChild(table);
+
+    const tableBody = plan.table.tBodies[0];
+    if (!tableBody) {
+        throw "Internal error";
     }
-    const resultsStatus = document.getElementById("resultsStatus");
-    if (resultsStatus) {
-        resultsStatus.textContent = resultRows === 0
-            ? "No items match these filters."
-            : `${resultRows} matching ${resultRows === 1 ? "item" : "items"}`;
+    target.replaceChildren(plan.table);
+    resultsGroup?.setAttribute("aria-busy", "true");
+    resultsGroup?.setAttribute("data-render-state", "rendering");
+    resultsGroup?.setAttribute("data-results-version", `${renderVersion}`);
+    resultsGroup?.setAttribute("data-rendered-rows", "0");
+    resultsGroup?.setAttribute("data-total-rows", `${plan.totalRows}`);
+
+    const loadMoreRow = createHTML([
+        "tr",
+        { class: "results-load-more" },
+        ["td",
+            { colspan: `${priorityStats.length + 6}` },
+            ["button",
+                { class: "results-load-more__button", type: "button" },
+                "Load more results",
+            ],
+        ],
+    ]);
+    const loadMoreButton = loadMoreRow.querySelector("button");
+    if (!(loadMoreButton instanceof HTMLButtonElement)) {
+        throw "Internal error";
     }
-    syncResultsTableScroll();
+
+    let renderer: ProgressiveBatchRenderer<number, HTMLTableRowElement>;
+    const requestMore = () => {
+        if (!renderer.continue()) {
+            return;
+        }
+        loadMoreRow.remove();
+        resultsGroup?.setAttribute("aria-busy", "true");
+        resultsGroup?.setAttribute("data-render-state", "rendering");
+    };
+    loadMoreButton.addEventListener("click", requestMore);
+
+    const observer = typeof IntersectionObserver === "undefined"
+        ? undefined
+        : new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                requestMore();
+            }
+        }, {
+            root: null,
+            rootMargin: "320px 0px",
+        });
+    activeResultsObserver = observer;
+
+    renderer = new ProgressiveBatchRenderer<number, HTMLTableRowElement>({
+        scheduler: browserFrameScheduler,
+        now: () => performance.now(),
+        initialRows: INITIAL_RESULT_ROWS,
+        rowsPerRequest: RESULT_ROWS_PER_REQUEST,
+        maxRowsPerFrame: MAX_RESULT_ROWS_PER_FRAME,
+        frameBudgetMs: RESULT_FRAME_BUDGET_MS,
+        create: index => plan.createRow(index),
+        commit(rows, state) {
+            if (renderVersion !== resultsRenderVersion) {
+                return;
+            }
+            loadMoreRow.remove();
+            const fragment = document.createDocumentFragment();
+            fragment.append(...rows);
+            tableBody.append(fragment);
+            resultsGroup?.setAttribute("data-rendered-rows", `${state.rendered}`);
+        },
+        pause(state) {
+            if (renderVersion !== resultsRenderVersion) {
+                return;
+            }
+            tableBody.append(loadMoreRow);
+            resultsGroup?.setAttribute("aria-busy", "false");
+            resultsGroup?.setAttribute("data-render-state", "partial");
+            if (resultsStatus) {
+                resultsStatus.textContent =
+                    `Showing ${state.rendered} of ${state.total} matching items`;
+            }
+            syncResultsTableScroll();
+        },
+        complete(state) {
+            if (renderVersion !== resultsRenderVersion) {
+                return;
+            }
+            observer?.disconnect();
+            loadMoreRow.remove();
+            resultsGroup?.setAttribute("aria-busy", "false");
+            resultsGroup?.setAttribute("data-render-state", "complete");
+            if (resultsStatus) {
+                resultsStatus.textContent =
+                    `${state.total} matching ${state.total === 1 ? "item" : "items"}`;
+            }
+            syncResultsTableScroll();
+        },
+    });
+    activeResultsRenderer = renderer;
+    renderer.start(Array.from({ length: plan.totalRows }, (_, index) => index));
+    observer?.observe(loadMoreRow);
 }
 
 let resultsTableScrollBound = false;
@@ -1080,7 +1233,6 @@ window.addEventListener("load", async () => {
     resultsGroup?.setAttribute("aria-busy", "false");
     loadingGroup?.setAttribute("aria-busy", "false");
     levelrange.dispatchEvent(new Event("input"));
-    updateResults();
     const sort_help = document.getElementById("priority_legend");
     if (sort_help instanceof HTMLLegendElement) {
         sort_help.appendChild(createPopupLink(" (?)", createHTML(["p",

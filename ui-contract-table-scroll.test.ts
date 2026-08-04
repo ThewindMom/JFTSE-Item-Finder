@@ -20,6 +20,19 @@ test("pins comparison column titles while scrolling down", async () => {
     );
 });
 
+test("gives the matched results frame sole ownership of row scrolling", async () => {
+    const css = await projectFile("./style.css");
+    const shellRule = css.match(/\.table-scroll-shell\s*\{[^}]*\}/)?.[0];
+    const scrollRule = css.match(/\.table-scroll\s*\{[^}]*\}/)?.[0];
+
+    expect(shellRule).toContain("flex: 1 1 auto");
+    expect(shellRule).toContain("min-height: 0");
+    expect(scrollRule).toContain("height: 100%");
+    expect(scrollRule).toContain("max-height: 100%");
+    expect(scrollRule).toContain("overflow-y: auto");
+    expect(scrollRule).toContain("overscroll-behavior-y: contain");
+});
+
 test("frames a discoverable top column-pan control for wide tables", async () => {
     const [html, css, script] = await Promise.all([
         projectFile("./index.html"),
