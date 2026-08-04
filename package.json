@@ -1,7 +1,7 @@
 {
     "type": "module",
     "scripts": {
-        "build": "bun run typecheck && bun build ./main.ts --target=browser --minify --outfile=script.js",
+        "build": "bun run typecheck && bun build ./main.ts --target=browser --format=iife --minify --outfile=script.js",
         "typecheck": "tsc --noEmit",
         "test": "bun test",
         "generate:catalog": "bun tools/generate_catalog.ts",
