@@ -30,6 +30,7 @@ test("GitHub Pages loads same-origin shop snapshots", async () => {
             addEventListener: () => {},
         },
         getElementById: () => null,
+        querySelector: () => null,
     };
     globalThis.location = new URL(pageUrl);
     globalThis.fetch = (input) => {
@@ -40,7 +41,7 @@ test("GitHub Pages loads same-origin shop snapshots", async () => {
     const { downloadItems } = await import("./itemLookup.ts");
     void downloadItems();
 
-    const shopUrls = requestedUrls.filter(url => !url.startsWith("https://raw.githubusercontent.com/"));
+    const shopUrls = requestedUrls.filter(url => url.includes("/shop/"));
     expect(shopUrls).toHaveLength(20);
     expect(shopUrls[0]).toBe(`${pageUrl}shop/0.json`);
     expect(shopUrls.every(url => url.startsWith(`${pageUrl}shop/`))).toBeTrue();

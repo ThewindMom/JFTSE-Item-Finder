@@ -4,26 +4,28 @@ BROWSERIFY = NODE_PATH=. node_modules/.bin/browserify -p esmify
 MINIFY = node_modules/uglify-js/bin/uglifyjs
 RM = rm -f
 CP = cp
+TYPESCRIPT_SOURCES = $(filter-out %.test.ts,$(wildcard *.ts))
+
+.NOTPARALLEL:
 
 all: release debug
 
 release: browserified.js
 	$(MINIFY) $< -cm > script.js
 
-debug: main.js
-	$(BROWSERIFY) -d $< > debug/script.js
+debug: compile
+	$(BROWSERIFY) -d main.js > debug/script.js
 	$(CP) index.html debug/index.html
 	$(CP) style.css debug/style.css
-	$(CP) style.css debug/style.css
-	$(CP) *.ts debug
+	$(CP) $(TYPESCRIPT_SOURCES) debug
 	$(CP)  favicon.ico debug/favicon.ico
 
-browserified.js: main.js
-	$(BROWSERIFY) $< > $@
+browserified.js: compile
+	$(BROWSERIFY) main.js > $@
 
-$(patsubst %.ts,%.js,$(wildcard *.ts)) &: *.ts tsconfig.json makefile
-	$(TSC) $(TSC_FLAGS) .
+compile:
+	$(TSC) $(TSC_FLAGS) tsconfig.build.json
 
-.PHONY: clean
+.PHONY: all compile release debug clean
 clean:
 	$(RM) *.js *.map

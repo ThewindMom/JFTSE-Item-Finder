@@ -2,98 +2,270 @@
 <html lang="en">
 
 <head>
-    <meta charset='UTF-8'>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#dff7ff">
+    <meta name="description" content="Compare Fantasy Tennis equipment, stats, and acquisition sources.">
     <title>JFTSE Item Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800&amp;display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
 
-<body>
+<body data-jftse-app="item-finder">
     <div id="top_div"></div>
 
-    <fieldset id="filter_group">
-        <legend>Filter</legend>
-        <div>
-            <div id="characterFilters"></div>
-            <div id="miscFilter" class="rowlayout">
-                <label id="levelDisplay" for="levelrange">Max level:</label>
-                <input type="range" min="1" max="100" value="100" id="levelrange">
-                <label for="nameFilter">Item Name</label>
-                <input type="search" id="nameFilter" spellcheck="false">
-                <div class="columnlayout" id="enchantdiv">
-                    <input type="checkbox" id="enchantToggle">
-                    <label for="enchantToggle">Post-enchantment</label>
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a class="brand-lockup" href="https://www.jftse.com/" aria-label="JFTSE home">
+                <span class="brand-lockup__copy">
+                    <span class="brand-lockup__eyebrow">Fantasy Tennis Community Server</span>
+                    <span class="brand-lockup__name">JFTSE</span>
+                </span>
+            </a>
+            <nav aria-label="JFTSE navigation">
+                <a href="https://www.jftse.com/">Home</a>
+                <a href="https://www.jftse.com/register">Register</a>
+                <a href="https://www.jftse.com/download">Download</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="finder-heading world-stage" aria-labelledby="finder-title">
+        <div class="world-stage__content">
+            <p class="finder-heading__eyebrow">Equipment database</p>
+            <h1 id="finder-title">JFTSE Item Finder</h1>
+            <p class="world-stage__headline">Find your perfect build</p>
+            <p class="world-stage__description">Search the complete item index, compare the stats that matter,
+                and know the real acquisition cost before you spend.</p>
+        </div>
+        <button class="filter-toggle" id="filterToggle" type="button" aria-controls="controlRail"
+            aria-expanded="false">
+            Refine results
+        </button>
+    </section>
+
+    <button class="filter-backdrop" id="filterBackdrop" type="button" aria-label="Close filters" hidden></button>
+
+    <main class="finder-workspace">
+        <section class="panel results-panel" id="results_group" aria-labelledby="results-title">
+            <div class="results-panel__header">
+                <div>
+                    <p class="panel-kicker">Matching items</p>
+                    <h2 id="results-title">Equipment results</h2>
+                </div>
+                <div class="results-panel__meta">
+                    <p id="resultsStatus" class="results-status" aria-live="polite">Preparing the lab…</p>
                 </div>
             </div>
-        </div>
-        <div>
-            <input id="partsSelector" type="radio" name="itemTypeSelector">
-            <label for="partsSelector">Equipment</label>
-            <div id="partsFilter"></div>
-            <input id="gachaSelector" type="radio" name="itemTypeSelector">
-            <label for="gachaSelector">Gacha</label>
-            <br>
-            <input id="otherItemsSelector" type="radio" name="itemTypeSelector" class="disabled">
-            <label for="otherItemsSelector" class="disabled">Other items</label>
-        </div>
-        <div id="availabilityFilter"></div>
-        <div id="itemFilter"></div>
-    </fieldset>
 
-    <fieldset id="priority_group">
-        <legend id="priority_legend">Sort Priority</legend>
-        <ol reversed id="priority_list">
-            <li class="dropzone" draggable="true">Mov Speed</li>
-            <li class="dropzone" draggable="true">Charge</li>
-            <li class="dropzone" draggable="true">Lob</li>
-            <li class="dropzone" draggable="true">Smash</li>
-            <li class="dropzone" draggable="true">Str</li>
-            <li class="dropzone" draggable="true">Dex</li>
-            <li class="dropzone" draggable="true">Sta</li>
-            <li class="dropzone" draggable="true">Will</li>
-            <li class="dropzone" draggable="true">Serve</li>
-            <li class="dropzone" draggable="true">Quickslots</li>
-            <li class="dropzone" draggable="true">Buffslots</li>
-            <li class="dropzone" draggable="true">HP</li>
-            <!--
-            <li class="dropzone" draggable="true">AP cost</li>
-            <li class="dropzone" draggable="true">Gold cost</li>
-            -->
-        </ol>
-    </fieldset>
+            <div id="loading_group" class="loading-state hide_after_load" role="status" aria-live="polite"
+                aria-busy="true">
+                <div class="loading-state__visual" aria-hidden="true">
+                    <div class="loading-orb">
+                        <span class="loading-orb__ring"></span>
+                        <span class="loading-orb__core"></span>
+                    </div>
+                </div>
+                <div class="loading-state__copy">
+                    <label id="loading" for="progressbar">Opening the equipment lab…</label>
+                    <span class="loading-state__detail">Preparing equipment, shops, and rewards.</span>
+                </div>
+                <progress id="progressbar" max="100" value="0" aria-label="Equipment data loading progress"></progress>
+            </div>
 
-    <fieldset id="results_group">
-        <legend>Results</legend>
-        <div id="loading_group" class="hide_after_load">
-            <label for="progressbar" id="loading">Loading, please wait...</label>
-            <progress id="progressbar" max="100" value="0"></progress>
-        </div>
-        <div id="results" class="show_after_load" hidden></div>
-    </fieldset>
+            <div class="table-scroll-shell">
+                <div class="table-column-pan" id="tableColumnPan" hidden>
+                    <div class="table-hscroll" id="tableHScroll" role="region"
+                        aria-label="Scroll comparison columns" tabindex="0">
+                        <div class="table-hscroll__spacer" id="tableHScrollSpacer"></div>
+                    </div>
+                </div>
+                <div class="table-scroll" id="tableScroll" role="region" aria-label="Item comparison results"
+                    tabindex="0">
+                    <div id="results" class="show_after_load" hidden></div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="control-rail" id="controlRail" data-mobile-filter-panel aria-label="Refine equipment results">
+            <div class="panel__mobile-header">
+                <span>Refine results</span>
+                <button id="closeFilters" type="button" aria-label="Close filters">Close</button>
+            </div>
+
+            <fieldset class="panel filter-panel" id="filter_group">
+                <legend>Refine equipment</legend>
+                <div class="rail-actions">
+                    <p id="refinementStatus" class="refinement-status" role="status">Updates instantly</p>
+                    <button id="resetFilters" class="text-action" type="button">Reset filters</button>
+                </div>
+
+                <div id="miscFilter" class="filter-stack">
+                    <div class="control-group control-group--search">
+                        <label for="nameFilter">Search equipment</label>
+                        <input type="search" id="nameFilter" placeholder="Name or keyword" spellcheck="false"
+                            autocomplete="off">
+                    </div>
+
+                    <div class="control-group">
+                        <label id="levelDisplay" for="levelrange">Max level requirement: 100</label>
+                        <input type="range" min="1" max="100" value="100" id="levelrange">
+                    </div>
+
+                    <div class="toggle-row" id="enchantdiv">
+                        <input type="checkbox" id="enchantToggle">
+                        <label for="enchantToggle">Show post-enchantment stats</label>
+                    </div>
+                </div>
+
+                <div class="filter-section filter-section--character">
+                    <h2>Character</h2>
+                    <div id="characterFilters" class="choice-list"></div>
+                </div>
+
+                <div class="filter-section exclusion-section">
+                    <h2>Excluded items</h2>
+                    <p class="section-hint">Excluded rows stay listed here so you can restore them.</p>
+                    <div id="itemFilter" aria-live="polite">
+                        <p class="empty-note">No excluded items</p>
+                    </div>
+                </div>
+
+                <details class="advanced-filters">
+                    <summary>More filters <span>Type, slots, and availability</span></summary>
+                    <div class="disclosure-content">
+                        <div class="filter-section">
+                            <h2>Item type</h2>
+                            <div class="choice-list choice-list--types">
+                                <input id="partsSelector" type="radio" name="itemTypeSelector">
+                                <label for="partsSelector">Equipment</label>
+                                <input id="gachaSelector" type="radio" name="itemTypeSelector">
+                                <label for="gachaSelector">Gacha</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h2>Equipment slots</h2>
+                            <div id="partsFilter"></div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h2>Availability</h2>
+                            <div id="availabilityFilter"></div>
+                        </div>
+
+                            </div>
+                </details>
+            </fieldset>
+
+            <fieldset class="panel priority-panel" id="priority_group">
+                <legend id="priority_legend">Result ranking</legend>
+                <details class="ranking-disclosure">
+                    <summary>Ranking priorities <span id="priority_summary_hint">Mov Speed first</span></summary>
+                    <div class="disclosure-content">
+                        <p class="panel-intro">Use the arrows or drag to set which stats win.</p>
+                        <ol reversed id="priority_list" aria-label="Item stat priority">
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Mov Speed</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Mov Speed priority" title="Raise Mov Speed" disabled></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Mov Speed priority" title="Lower Mov Speed"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Charge</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Charge priority" title="Raise Charge"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Charge priority" title="Lower Charge"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Lob</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Lob priority" title="Raise Lob"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Lob priority" title="Lower Lob"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Smash</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Smash priority" title="Raise Smash"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Smash priority" title="Lower Smash"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Str</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Str priority" title="Raise Str"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Str priority" title="Lower Str"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Dex</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Dex priority" title="Raise Dex"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Dex priority" title="Lower Dex"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Sta</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Sta priority" title="Raise Sta"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Sta priority" title="Lower Sta"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Will</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Will priority" title="Raise Will"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Will priority" title="Lower Will"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Serve</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Serve priority" title="Raise Serve"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Serve priority" title="Lower Serve"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Quickslots</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Quickslots priority" title="Raise Quickslots"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Quickslots priority" title="Lower Quickslots"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">Buffslots</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise Buffslots priority" title="Raise Buffslots"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower Buffslots priority" title="Lower Buffslots"></button>
+                                </span>
+                            </li>
+                            <li class="dropzone" draggable="true">
+                                <span class="priority-stat-label">HP</span>
+                                <span class="priority-move-controls">
+                                    <button type="button" class="priority-move priority-move-up" aria-label="Raise HP priority" title="Raise HP"></button>
+                                    <button type="button" class="priority-move priority-move-down" aria-label="Lower HP priority" title="Lower HP" disabled></button>
+                                </span>
+                            </li>
+                        </ol>
+                    </div>
+                </details>
+            </fieldset>
+        </aside>
+    </main>
+
+    <footer class="site-footer">
+        <p>Built for the JFTSE Fantasy Tennis community.</p>
+        <p>Feedback? Join the <a href="https://discord.gg/MwamzbMTMy">JFTSE Discord</a>.</p>
+    </footer>
 
     <script src="script.js"></script>
-
-    <footer>
-        <hr>
-        <fieldset id="todo_group">
-            <legend>TODO List</legend>
-            <ul>
-                <li>Figure out how to tell if an item is full body (soda can)</li>
-                <li>Allow changing sources (older or experimental versions)</li>
-                <li>Add stat distribution function</li>
-                <li>Automatically reload page when source changes (either FT update or Item Finder update)</li>
-                <li>Add support for mobile drag/drop for priority list</li>
-                <li>Highlight hovered row and column in results table</li>
-                <li>Make exclusion list a scroll window and add explanation</li>
-                <li>Properly calculate total cost</li>
-            </ul>
-        </fieldset>
-        <p>Like it? Give gold to Kanone!<br>Hate it? Complain to Lilli on <a
-                href="https://discord.gg/MwamzbMTMy">Discord</a>!
-        </p>
-    </footer>
 </body>
 
 </html>

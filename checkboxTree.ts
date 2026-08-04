@@ -46,7 +46,7 @@ function getParent(node: HTMLInputElement): HTMLInputElement | void {
     if (!(parent_ul instanceof HTMLUListElement)) {
         return;
     }
-    let candidate: HTMLLIElement | void;
+    let candidate: HTMLLIElement | undefined = undefined;
     for (const child of parent_ul.children) {
         if (child instanceof HTMLLIElement && child.children[0] instanceof HTMLInputElement) {
             candidate = child;

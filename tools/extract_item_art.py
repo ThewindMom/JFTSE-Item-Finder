@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import io
+import json
+import struct
+import subprocess
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree
+
+from PIL import Image
+
+
+AES_KEY_HEX = "54494d4f5445495f5a494f4e00000000"
+ROUND_COIN_COLORS = (
+    "Red",
+    "Orange",
+    "Yellow",
+    "Green",
+    "Blue",
+    "Indigo",
+    "Purple",
+    "White",
+    "Silver",
+    "Black",
+    "Pink",
+    "Mint",
+    "Burgundy-gold",
+    "Cyan",
+    "Magenta",
+    "Cream",
+    "Lime",
+    "Olive",
+    "Violet",
+    "Emerald",
+    "Rainbow",
+)
+CUBE_COLORS = ROUND_COIN_COLORS[:10]
+
+
+def decrypt_set(archive: zipfile.ZipFile, entry: str) -> bytes:
+    encrypted = archive.read(entry)
+    completed = subprocess.run(
+        [
+            "openssl",
+            "enc",
+            "-d",
+            "-aes-128-ecb",
+            "-K",
+            AES_KEY_HEX,
+            "-nopad",
+        ],
+        input=encrypted[1:],
+        capture_output=True,
+        check=True,
+    )
+    return completed.stdout[: -encrypted[0]]
+
+
+def dds_dxt5(width: int, height: int, payload: bytes) -> bytes:
+    header = struct.pack(
+        "<I I I I I I I 11I",
+        124,
+        0x00081007,
+        height,
+        width,
+        len(payload),
+        0,
+        0,
+        *([0] * 11),
+    )
+    pixel_format = struct.pack("<I I 4s I I I I I", 32, 0x4, b"DXT5", 0, 0, 0, 0, 0)
+    caps = struct.pack("<I I I I I", 0x1000, 0, 0, 0, 0)
+    return b"DDS " + header + pixel_format + caps + payload
+
+
+def decode_texture(texture: bytes, width: int, height: int | None = None) -> Image.Image:
+    height = height or width
+    payload = texture[128:]
+    raw_size = width * height * 4
+    if len(payload) >= raw_size:
+        return Image.frombytes("RGBA", (width, height), payload[:raw_size], "raw", "BGRA")
+
+    dxt5_size = width * height
+    return Image.open(
+        io.BytesIO(dds_dxt5(width, height, payload[:dxt5_size]))
+    ).convert("RGBA")
+
+
+def extract_world_visual(client_root: Path, output_root: Path) -> dict[str, str | int]:
+    source_archive = Path("Res") / "GuiRes" / "Main.res"
+    source_entry = "Main.tex"
+    with zipfile.ZipFile(client_root / source_archive) as archive:
+        texture = decode_texture(archive.read(source_entry), 1024, 512)
+    image = texture.crop((0, 0, 512, 512)).convert("RGB")
+    output_file = "fantasy-tennis-island.webp"
+    image.save(
+        output_root / output_file,
+        "WEBP",
+        quality=90,
+        method=6,
+    )
+    return {
+        "file": output_file,
+        "height": image.height,
+        "sourceArchive": source_archive.as_posix(),
+        "sourceEntry": source_entry,
+        "width": image.width,
+    }
+
+
+def build_sheet_index(gui_root: Path, wanted: set[str]) -> dict[str, tuple[Path, str]]:
+    found: dict[str, tuple[Path, str]] = {}
+    for archive_path in sorted(gui_root.rglob("*.res")):
+        with zipfile.ZipFile(archive_path) as archive:
+            for entry in archive.namelist():
+                stem = Path(entry).stem
+                if stem in wanted:
+                    found[stem] = (archive_path, entry)
+    missing = wanted - found.keys()
+    if missing:
+        raise RuntimeError(f"Missing sprite sheets: {', '.join(sorted(missing))}")
+    return found
+
+
+def lottery_art(icon: str) -> dict[str, str | int]:
+    sheet, cell_text = icon.rsplit("_", 1)
+    cell = int(cell_text)
+    if sheet == "Item_GatchaCoin00":
+        return {
+            "sheet": sheet,
+            "cell": cell,
+            "color": ROUND_COIN_COLORS[cell],
+            "shape": "coin",
+        }
+    if sheet == "Item_GatchaCoin01":
+        return {
+            "sheet": sheet,
+            "cell": cell,
+            "color": CUBE_COLORS[cell],
+            "shape": "cube",
+        }
+    return {
+        "sheet": sheet,
+        "cell": cell,
+        "color": "Special",
+        "shape": "token",
+    }
+
+
+def extract_item_art(client_root: Path, output_root: Path) -> None:
+    script_archive_path = client_root / "Res" / "Script" / "Item.res"
+    with zipfile.ZipFile(script_archive_path) as script_archive:
+        icon_root = ElementTree.fromstring(
+            decrypt_set(script_archive, "Info_Item_Icon.set").decode("utf-8")
+        )
+        item_root = ElementTree.fromstring(
+            decrypt_set(script_archive, "Item_Parts.set").decode("utf-8")
+        )
+    with zipfile.ZipFile(
+        client_root / "Res" / "Script" / "PubItem" / "Ini3.res"
+    ) as lottery_archive:
+        lottery_root = ElementTree.fromstring(
+            decrypt_set(lottery_archive, "Item_Lottery_Ini3.set").decode("utf-8")
+        )
+
+    sheets = {
+        element.attrib["Name"]: {
+            "lineCount": int(element.attrib["LineCount"]),
+            "size": int(element.attrib["Size"]),
+            "space": int(element.attrib["Space"]),
+        }
+        for element in icon_root
+    }
+    items: dict[str, list[str | int]] = {}
+    used_sheets: set[str] = set()
+    for element in item_root:
+        icon = element.attrib["Icon"]
+        sheet, cell_text = icon.rsplit("_", 1)
+        items[element.attrib["Index"]] = [sheet, int(cell_text)]
+        used_sheets.add(sheet)
+    lotteries = {
+        element.attrib["Index"]: lottery_art(element.attrib["Icon"])
+        for element in lottery_root
+    }
+    used_sheets.update(
+        descriptor["sheet"]
+        for descriptor in lotteries.values()
+        if isinstance(descriptor["sheet"], str)
+    )
+
+    sprite_entries = build_sheet_index(client_root / "Res" / "GuiRes", used_sheets)
+    art_root = output_root / "item-art"
+    art_root.mkdir(parents=True, exist_ok=True)
+    expected_files = {f"{sheet}.webp" for sheet in used_sheets}
+    for stale in art_root.glob("*.webp"):
+        if stale.name not in expected_files:
+            stale.unlink()
+
+    for sheet in sorted(used_sheets):
+        geometry = sheets[sheet]
+        width = (
+            geometry["lineCount"] * geometry["size"]
+            + (geometry["lineCount"] + 1) * geometry["space"]
+        )
+        archive_path, entry = sprite_entries[sheet]
+        with zipfile.ZipFile(archive_path) as archive:
+            image = decode_texture(archive.read(entry), width)
+        image.save(art_root / f"{sheet}.webp", "WEBP", lossless=True, method=6)
+        geometry["width"] = width
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    world_visual = extract_world_visual(client_root, output_root)
+    (output_root / "item-art-map.json").write_text(
+        json.dumps(
+            {
+                "items": items,
+                "lotteries": lotteries,
+                "sheets": {sheet: sheets[sheet] for sheet in sorted(used_sheets)},
+                "worldVisual": world_visual,
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"Extracted {len(used_sheets)} sprite sheets for "
+        f"{len(items)} items and {len(lotteries)} lotteries"
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Extract authentic Fantasy Tennis item artwork")
+    parser.add_argument("--client-root", required=True, type=Path)
+    parser.add_argument("--output-root", default=Path("assets"), type=Path)
+    arguments = parser.parse_args()
+    extract_item_art(arguments.client_root.resolve(), arguments.output_root.resolve())
+
+
+if __name__ == "__main__":
+    main()
